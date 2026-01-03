@@ -1,5 +1,4 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, Input, Select, Button, Pagination } from "../../../app/shared";

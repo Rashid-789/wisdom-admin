@@ -117,3 +117,9 @@ export async function deleteMessage(messageId: string): Promise<ChatMessage> {
   return CHAT[idx];
 }
 
+/* -------------------------------------------------------------------------- */
+/* Google Meet (Calendar)                                                      */
+/* -------------------------------------------------------------------------- */
+export { createGoogleMeetEvent, updateGoogleMeetEvent } from "./liveclass.api";
+export type { GoogleMeetUpsertInput, GoogleMeetUpsertResponse } from "./liveclass.api";
+

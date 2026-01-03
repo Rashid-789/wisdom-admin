@@ -124,9 +124,8 @@ const UsersTable: React.FC<Props> = ({ role }) => {
                 Refresh
               </Button>
 
-              <Button onClick={() => setCreateOpen(true)}>
-                Add {roleLabel(role)}
-              </Button>
+              {/* ✅ Changed from: Add Student/Teacher/Admin -> Add User */}
+              <Button onClick={() => setCreateOpen(true)}>Add User</Button>
             </div>
           </div>
 
@@ -136,11 +135,7 @@ const UsersTable: React.FC<Props> = ({ role }) => {
             </div>
           ) : null}
 
-          {/* ✅ Responsive table wrapper:
-              - On mobile, allow horizontal scroll
-              - Prevent page overflow (scroll stays inside this area)
-              - Keeps desktop look the same
-           */}
+          {/* ✅ Responsive table wrapper */}
           <div className="-mx-4 sm:mx-0">
             <div className="overflow-x-auto overscroll-x-contain px-4 sm:px-0">
               <div className="min-w-[640px] sm:min-w-0">
@@ -182,7 +177,7 @@ const UsersTable: React.FC<Props> = ({ role }) => {
         open={createOpen}
         userId={null}
         mode="create"
-        defaultRole={role}
+        defaultRole={role} // ✅ still creates based on active tab
         onClose={() => setCreateOpen(false)}
         onSaved={() => {
           setCreateOpen(false);
