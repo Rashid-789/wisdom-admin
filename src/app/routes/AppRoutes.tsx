@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import AdminLayout from "../layout/AdminLayout/AdminLayout";
-import RequireAdmin from "../auth/RequireAdmin";
+import RequireAdmin from "../../auth/RequireAdmin";
 import NotFoundPage from "../../pages/Dashboard/NotFoundPage";
 
 // Public auth pages

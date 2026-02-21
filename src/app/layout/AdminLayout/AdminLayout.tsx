@@ -71,27 +71,29 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-dvh w-full overflow-x-hidden bg-slate-50">
-      <Sidebar
-        open={sidebarVisible}
-        onClose={() => {
-          if (!isDesktop) setSidebarOpen(false);
-        }}
-        onLogout={handleLogout}
-      />
-
-      {/* Padding only applies on large screens where sidebar is docked */}
-      <div className="relative flex min-h-dvh w-full min-w-0 flex-col lg:pl-[280px]">
-        <Topbar
-          onOpenSidebar={() => {
-            if (!isDesktop) setSidebarOpen(true);
+    <div className="h-screen w-full overflow-hidden bg-slate-50">
+      <div className="flex h-full w-full">
+        <Sidebar
+          open={sidebarVisible}
+          onClose={() => {
+            if (!isDesktop) setSidebarOpen(false);
           }}
-          user={user}
+          onLogout={handleLogout}
         />
 
-        <main className="min-h-0 w-full min-w-0 flex-1">
-          <Outlet />
-        </main>
+        {/* Padding only applies on large screens where sidebar is docked */}
+        <div className="flex h-full flex-1 min-h-0 min-w-0 flex-col lg:pl-[280px]">
+          <Topbar
+            onOpenSidebar={() => {
+              if (!isDesktop) setSidebarOpen(true);
+            }}
+            user={user}
+          />
+
+          <main className="flex-1 min-h-0 overflow-y-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );

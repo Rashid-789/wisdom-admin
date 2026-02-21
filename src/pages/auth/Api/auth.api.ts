@@ -1,60 +1,36 @@
-﻿import type { AuthSession, LoginInput } from "../Types/auth.types";
-import { clearSession, readSession, writeSession } from "../auth.storage";
+﻿import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../../../app/utils/firebase";
+
+import type { AuthSession, LoginInput } from "../Types/auth.types";
 import { normalizeEmail } from "../utils/auth.utils";
-
-/**
- * Firebase mapping (later):
- * - login: signInWithEmailAndPassword(auth, email, password)
- * - session token: await user.getIdToken()
- * - role:
- *    - Custom Claims OR Firestore /users/{uid}.role
- * - forgot password: sendPasswordResetEmail(auth, email)
- */
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+import { buildAdminSession } from "../../../auth/firebaseSession";
 
 export async function loginAdmin(input: LoginInput): Promise<AuthSession> {
-  await sleep(300);
-
   const email = normalizeEmail(input.email);
   const password = input.password;
 
-  // Demo guard (replace with Firebase):
-  if (email !== "admin@domain.com" || password !== "admin12345") {
-    throw new Error("Invalid email or password");
+  let cred;
+  try {
+    cred = await signInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    console.error("[auth] login failed:", error);
+    throw error;
   }
 
-  const session: AuthSession = {
-    token: "mock-token",
-    user: {
-      uid: "admin_1",
-      email,
-      displayName: "Admin",
-      role: "admin",
-      avatarUrl: null,
-    },
-  };
-
-  writeSession(session);
-  return session;
+  try {
+    return await buildAdminSession(cred.user);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
 }
 
 export async function logoutAdmin(): Promise<void> {
-  await sleep(120);
-  clearSession();
+  await signOut(auth);
 }
 
 export async function sendAdminPasswordReset(email: string): Promise<void> {
-  await sleep(250);
-
-  // Firebase: sendPasswordResetEmail(auth, email)
-  if (!email) throw new Error("Email is required");
+  const e = normalizeEmail(email);
+  if (!e) throw new Error("Email is required");
+  await sendPasswordResetEmail(auth, e);
 }
-
-export async function getCurrentSession(): Promise<AuthSession | null> {
-  await sleep(80);
-  return readSession();
-}
-

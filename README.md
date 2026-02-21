@@ -71,3 +71,19 @@ export default defineConfig([
   },
 ])
 ```
+
+## Admin Bootstrap
+
+Admin access is controlled by Firestore documents at `admins/<uid>` (document ID must equal the Firebase Auth UID).
+To bootstrap an admin, create a document in Firestore:
+
+```
+admins/<uid>
+{
+  "email": "admin@example.com",
+  "name": "Admin User",
+  "role": "admin"
+}
+```
+
+You can find the user UID in Firebase Console → Authentication → Users.

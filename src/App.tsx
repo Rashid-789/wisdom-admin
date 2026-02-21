@@ -2,6 +2,7 @@ import React from "react";
 import AppRoutes from "./app/routes/AppRoutes";
 import ErrorBoundary from "./app/ui/ErrorBoundary";
 import { AdminAuthProvider } from "./auth/AdminAuthProvider";
+import { Toaster } from "react-hot-toast";
 
 const App: React.FC = () => {
   return (
@@ -9,6 +10,7 @@ const App: React.FC = () => {
       <AdminAuthProvider>
         <AppRoutes />
       </AdminAuthProvider>
+      <Toaster position="top-right" />
     </ErrorBoundary>
   );
 };

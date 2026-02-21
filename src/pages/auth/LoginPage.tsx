@@ -1,6 +1,5 @@
 ﻿import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 
 import AuthSplitLayout from "./components/AuthSplitLayout";
@@ -35,11 +34,9 @@ export default function LoginPage() {
             setLoading(true);
             try {
               await login({ email, password });
-              toast.success("Welcome back ✅");
               navigate(next, { replace: true });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (err: any) {
-              toast.error(err?.message ?? "Login failed");
+            } catch {
+              // auth provider handles toast + session state
             } finally {
               setLoading(false);
             }
@@ -83,10 +80,6 @@ export default function LoginPage() {
             Sign in
           </Button>
 
-          <p className="text-xs text-slate-500">
-            Tip: Demo login is <span className="font-medium">admin@domain.com</span> /{" "}
-            <span className="font-medium">admin12345</span> (until Firebase).
-          </p>
         </form>
       </AuthCard>
     </AuthSplitLayout>
