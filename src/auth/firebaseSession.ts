@@ -23,6 +23,17 @@ export async function buildAdminSession(user: User): Promise<AuthSession> {
     : undefined;
 
   if (!role) {
+    if (import.meta.env.DEV) {
+      const projectId = db.app.options.projectId ?? "unknown";
+      const docPath = `admins/${user.uid}`;
+      console.info("[admin] verify", {
+        projectId,
+        uid: user.uid,
+        email,
+        docPath,
+      });
+    }
+
     try {
       const directSnap = await getDoc(doc(db, "admins", user.uid));
       if (directSnap.exists()) {
@@ -31,7 +42,7 @@ export async function buildAdminSession(user: User): Promise<AuthSession> {
           role = data!.role as AdminRole;
         }
       } else if (import.meta.env.DEV) {
-        console.warn(`[admin] Missing admin registry doc: user/${user.uid}`);
+        console.warn(`[admin] Missing admin registry doc: admins/${user.uid}`);
       }
     } catch (error) {
       if (typeof error === "object" && error && "code" in error) {
@@ -47,7 +58,9 @@ export async function buildAdminSession(user: User): Promise<AuthSession> {
   }
 
   if (!role) {
-    throw new Error("Not authorized: admin access required");
+    const error = new Error("Not authorized: admin access required");
+    (error as { missingAdminPath?: string }).missingAdminPath = `admins/${user.uid}`;
+    throw error;
   }
 
   return {

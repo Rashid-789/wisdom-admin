@@ -1,5 +1,4 @@
-﻿
-import React from "react";
+﻿import React from "react";
 import type { UserDetails } from "./Types/users.types";
 import { getUserDetails } from "./Api/users.api";
 

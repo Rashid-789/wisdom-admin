@@ -4,6 +4,7 @@ import type { AdminAccount } from "../Types/settings.types";
 import { getSettingsSnapshot } from "../Api/settings.api";
 import ProfileCard from "./components/ProfileCard";
 import PasswordCard from "./components/PasswordCard";
+
 export default function SettingsAccountPage() {
   const [account, setAccount] = React.useState<AdminAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -35,10 +36,9 @@ export default function SettingsAccountPage() {
   if (!account) return null;
 
   return (
-    <div className="grid grid-cols-1  gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ProfileCard account={account} onUpdated={load} />
       <PasswordCard email={account.email} />
     </div>
   );
 }
-

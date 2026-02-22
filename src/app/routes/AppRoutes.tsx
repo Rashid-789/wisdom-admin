@@ -63,10 +63,10 @@ const AppRoutes: React.FC = () => {
           <Route path="dashboard" element={<DashboardPage />} />
 
           <Route path="users" element={<UsersLayoutPage />}>
-            <Route index element={<Navigate to="students" replace />} />
-            <Route path="students" element={<UsersListPage role="student" />} />
-            <Route path="teachers" element={<UsersListPage role="teacher" />} />
-            <Route path="admins" element={<UsersListPage role="admin" />} />
+            <Route index element={<UsersListPage />} />
+            <Route path="students" element={<Navigate to="/admin/users" replace />} />
+            <Route path="teachers" element={<Navigate to="/admin/users" replace />} />
+            <Route path="admins" element={<Navigate to="/admin/users" replace />} />
           </Route>
 
           <Route path="content" element={<ContentLayoutPage />}>

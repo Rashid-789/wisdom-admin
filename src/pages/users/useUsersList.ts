@@ -1,10 +1,10 @@
-﻿
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import type { UsersListQuery, UsersListResponse, UserRole } from "./Types/users.types";
+import type { UsersListQuery, UsersListResponse } from "./Types/users.types";
 import { getUsersList } from "./Api/users.api";
 import { useDebouncedValue } from "../../app/shared";
 
-export function useUsersList(role: UserRole) {
+export function useUsersList() {
   const [page, setPage] = React.useState(1);
   const [pageSize] = React.useState(10);
   const [search, setSearch] = React.useState("");
@@ -16,9 +16,11 @@ export function useUsersList(role: UserRole) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  const role = "student" as const;
+
   const query: UsersListQuery = React.useMemo(
     () => ({ role, page, pageSize, search: debouncedSearch, status }),
-    [role, page, pageSize, debouncedSearch, status]
+    [page, pageSize, debouncedSearch, status],
   );
 
   const load = React.useCallback(async () => {
@@ -41,7 +43,7 @@ export function useUsersList(role: UserRole) {
 
   React.useEffect(() => {
     setPage(1);
-  }, [role, debouncedSearch, status]);
+  }, [debouncedSearch, status]);
 
   React.useEffect(() => {
     load();

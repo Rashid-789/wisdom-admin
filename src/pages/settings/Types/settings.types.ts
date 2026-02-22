@@ -1,5 +1,5 @@
 ﻿export type AdminAccount = {
-  id: string;
+  id: string; // uid
   email: string;
   displayName: string;
   username: string;
@@ -30,4 +30,3 @@ export type ChangePasswordInput = {
   currentPassword: string;
   newPassword: string;
 };
-

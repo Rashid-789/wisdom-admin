@@ -2,8 +2,8 @@
 
 export const DEFAULT_SETTINGS: SettingsSnapshot = {
   account: {
-    id: "admin_1",
-    email: "admin@domain.com",
+    id: "",
+    email: "",
     displayName: "Admin",
     username: "admin",
     avatarUrl: null,
@@ -18,4 +18,3 @@ export const DEFAULT_SETTINGS: SettingsSnapshot = {
     },
   },
 };
-

@@ -2,7 +2,7 @@ import React from "react";
 import { Menu } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { getAdminPageMeta } from "./pageTitle";
-import type { AdminUser } from "../../auth/useAdminSession";
+import type { AdminUser } from "../../../pages/auth/Types/auth.types";
 import TopbarUserBadge from "./TopbarUserBadge";
 
 import NotificationBell from "../../../notifications/NotificationBell";

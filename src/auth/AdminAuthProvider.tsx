@@ -14,15 +14,28 @@ type AdminAuthContextValue = {
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   sendReset: (email: string) => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const AdminAuthContext = React.createContext<AdminAuthContextValue | null>(null);
 
 const NOT_AUTHORIZED_ERROR = "Not authorized: admin access required";
-const ACCESS_DENIED_MESSAGE =
-  "Access denied: admin permissions required (Create admins/<uid> doc in Firestore)";
+const ACCESS_DENIED_PREFIX =
+  "Access denied: admin permissions required (Create admins/<uid> doc in Firestore).";
 const TOAST_DEDUPE_WINDOW_MS = 1500;
 const AUTH_OP_WINDOW_MS = 1500;
+const RETRY_DELAYS_MS = [1000, 2000, 5000];
+const TRANSIENT_ERROR_CODES = new Set([
+  "unavailable",
+  "deadline-exceeded",
+  "cancelled",
+  "auth/network-request-failed",
+]);
+const FATAL_AUTH_CODES = new Set(["auth/user-disabled", "auth/user-token-expired"]);
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function isNotAuthorizedError(error: unknown) {
   return error instanceof Error && error.message === NOT_AUTHORIZED_ERROR;
@@ -49,8 +62,38 @@ function withDevCode(message: string, code?: string) {
   return message;
 }
 
-function getReadableAuthError(error: unknown) {
-  if (isNotAuthorizedError(error)) return ACCESS_DENIED_MESSAGE;
+function isTransientError(error: unknown) {
+  const code = getErrorCode(error);
+  return code ? TRANSIENT_ERROR_CODES.has(code) : false;
+}
+
+function isFatalAuthError(error: unknown) {
+  const code = getErrorCode(error);
+  return code ? FATAL_AUTH_CODES.has(code) : false;
+}
+
+function getMissingAdminPath(error: unknown, uid?: string) {
+  if (
+    typeof error === "object" &&
+    error &&
+    "missingAdminPath" in error &&
+    typeof (error as { missingAdminPath?: unknown }).missingAdminPath === "string"
+  ) {
+    return (error as { missingAdminPath: string }).missingAdminPath;
+  }
+  if (error instanceof Error) {
+    const match = error.message.match(/missing\s+(admins\/[^\s)]+)/i);
+    if (match?.[1]) return match[1];
+  }
+  if (uid) return `admins/${uid}`;
+  return undefined;
+}
+
+function getReadableAuthError(error: unknown, uid?: string) {
+  if (isNotAuthorizedError(error)) {
+    const missingPath = getMissingAdminPath(error, uid);
+    return missingPath ? `${ACCESS_DENIED_PREFIX} Missing: ${missingPath}` : ACCESS_DENIED_PREFIX;
+  }
 
   const code = getErrorCode(error);
   switch (code) {
@@ -103,6 +146,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const [session, setSession] = React.useState<AuthSession | null>(null);
   const hasSessionRef = React.useRef(false);
+  const sessionRef = React.useRef<AuthSession | null>(null);
+  const runIdRef = React.useRef(0);
 
   // Suppress listener work during explicit login/logout (prevents double checks + double toasts)
   const authOpRef = React.useRef(false);
@@ -135,36 +180,89 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  React.useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (fbUser) => {
+      console.info("[auth] onIdTokenChanged fired", { uid: fbUser?.uid });
+
       // If user signed out
       if (!fbUser) {
         setSession(null);
+        sessionRef.current = null;
         hasSessionRef.current = false;
         setLoading(false);
         return;
       }
 
       // During manual login/logout, let the action handler own the flow
-      if (authOpRef.current) return;
+      if (authOpRef.current) {
+        console.info("[auth] listener suppressed (auth op in progress)", { uid: fbUser?.uid });
+        return;
+      }
 
       setLoading(true);
+      const runId = ++runIdRef.current;
       try {
-        const s = await buildAdminSession(fbUser);
+        let attempt = 0;
+        let showedTransientToast = false;
+        let s: AuthSession;
+        while (true) {
+          try {
+            s = await buildAdminSession(fbUser);
+            break;
+          } catch (error) {
+            const transient = isTransientError(error);
+            if (transient && attempt < RETRY_DELAYS_MS.length) {
+              if (!showedTransientToast) {
+                toastOnce("error", "Connection issue. Retrying…");
+                showedTransientToast = true;
+              }
+              await sleep(RETRY_DELAYS_MS[attempt]);
+              attempt += 1;
+              if (runId !== runIdRef.current) {
+                throw error;
+              }
+              continue;
+            }
+            throw error;
+          }
+        }
+
         setSession(s);
+        sessionRef.current = s;
         if (!hasSessionRef.current) {
           toastOnce("success", "Welcome back, Admin");
         }
         hasSessionRef.current = true;
       } catch (error) {
-        setSession(null);
-        hasSessionRef.current = false;
-        toastOnce("error", getReadableAuthError(error));
+        console.error("[auth] session refresh failed", {
+          name: (error as { name?: string })?.name,
+          code: getErrorCode(error),
+          message: (error as { message?: string })?.message,
+        });
 
-        try {
-          markAuthOp();
-          await signOut(auth);
-        } catch {
-          // ignore
+        const transient = isTransientError(error);
+        const shouldSignOut = isNotAuthorizedError(error) || isFatalAuthError(error);
+
+        if (!transient) {
+          setSession(null);
+          sessionRef.current = null;
+          hasSessionRef.current = false;
+        }
+
+        if (!transient) {
+          toastOnce("error", getReadableAuthError(error, fbUser?.uid));
+        }
+
+        if (shouldSignOut) {
+          try {
+            markAuthOp();
+            await signOut(auth);
+          } catch {
+            // ignore
+          }
         }
       } finally {
         setLoading(false);
@@ -183,7 +281,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       hasSessionRef.current = true;
       toastOnce("success", "Logged in");
     } catch (error) {
-      toastOnce("error", getReadableAuthError(error));
+      toastOnce("error", getReadableAuthError(error, auth.currentUser?.uid));
       throw error;
     } finally {
       setLoading(false);
@@ -207,7 +305,37 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     await sendAdminPasswordReset(email);
   }, []);
 
-  const value: AdminAuthContextValue = { loading, session, login, logout, sendReset };
+  const refresh = React.useCallback(async () => {
+    if (!auth.currentUser) {
+      setSession(null);
+      sessionRef.current = null;
+      hasSessionRef.current = false;
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const s = await buildAdminSession(auth.currentUser);
+      setSession(s);
+      sessionRef.current = s;
+      hasSessionRef.current = true;
+    } catch (error) {
+      const shouldSignOut = isNotAuthorizedError(error) || isFatalAuthError(error);
+      if (shouldSignOut) {
+        try {
+          markAuthOp();
+          await signOut(auth);
+        } catch {
+          // ignore
+        }
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [markAuthOp]);
+
+  const value: AdminAuthContextValue = { loading, session, login, logout, sendReset, refresh };
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }

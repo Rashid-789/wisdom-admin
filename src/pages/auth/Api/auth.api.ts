@@ -1,5 +1,5 @@
 ﻿import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../../../app/utils/firebase";
+import { auth, authReady } from "../../../app/utils/firebase";
 
 import type { AuthSession, LoginInput } from "../Types/auth.types";
 import { normalizeEmail } from "../utils/auth.utils";
@@ -11,6 +11,7 @@ export async function loginAdmin(input: LoginInput): Promise<AuthSession> {
 
   let cred;
   try {
+    await authReady;
     cred = await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     console.error("[auth] login failed:", error);

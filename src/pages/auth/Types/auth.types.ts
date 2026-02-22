@@ -1,4 +1,6 @@
-﻿export type AdminUser = {
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+export type AdminUser = {
+  name(name: any): import("react").ReactNode;
   uid: string;
   email: string;
   displayName: string;

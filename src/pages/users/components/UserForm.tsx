@@ -4,11 +4,12 @@ import { Button, Input, Select } from "../../../app/shared";
 
 type Props =
   | {
-      mode: "create";
+      mode: "create"; // future
       defaultRole: UserRole;
       isSubmitting?: boolean;
       onCancel: () => void;
       onSubmit: (input: UpsertUserInput) => void;
+      disableRole?: boolean;
     }
   | {
       mode: "edit";
@@ -16,12 +17,13 @@ type Props =
       isSubmitting?: boolean;
       onCancel: () => void;
       onSubmit: (patch: Partial<UpsertUserInput>) => void;
+      disableRole?: boolean; // ✅ added
     };
 
 const UserForm: React.FC<Props> = (props) => {
   const isCreate = props.mode === "create";
 
-  const [name, setName] = React.useState(isCreate ? "" : props.initial.name);
+  const [name, setName] = React.useState(isCreate ? "" : props.initial.name ?? "");
   const [email, setEmail] = React.useState(isCreate ? "" : props.initial.email);
   const [role, setRole] = React.useState<UserRole>(isCreate ? props.defaultRole : props.initial.role);
   const [status, setStatus] = React.useState<UserStatus>(isCreate ? "active" : props.initial.status);
@@ -35,26 +37,30 @@ const UserForm: React.FC<Props> = (props) => {
   const submit = () => {
     if (!canSubmit) return;
 
-    if (isCreate) {
-      props.onSubmit({
-        name: name.trim(),
-        email: email.trim(),
-        role,
-        status,
-        grade: role === "student" ? grade.trim() || undefined : undefined,
-        verified: role === "teacher" ? verified : undefined,
-        phone: phone.trim() || undefined,
-      });
-    } else {
-      props.onSubmit({
-        name: name.trim(),
-        email: email.trim(),
-        role,
-        status,
-        grade: role === "student" ? grade.trim() || undefined : undefined,
-        verified: role === "teacher" ? verified : undefined,
-        phone: phone.trim() || undefined,
-      });
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      status,
+      // role is blocked in edit for now (handled below)
+      role,
+      grade: role === "student" ? grade.trim() || undefined : undefined,
+      verified: role === "teacher" ? verified : undefined,
+      phone: phone.trim() || undefined,
+    };
+
+    if (isCreate) props.onSubmit(payload as UpsertUserInput);
+    else {
+      const patch: Partial<UpsertUserInput> = {
+        name: payload.name,
+        email: payload.email,
+        status: payload.status,
+        grade: payload.grade,
+        verified: payload.verified,
+        phone: payload.phone,
+      };
+
+      // ✅ Role change disabled (needs Cloud Function for claims)
+      props.onSubmit(patch);
     }
   };
 
@@ -65,10 +71,12 @@ const UserForm: React.FC<Props> = (props) => {
       <Input label="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+92 ..." />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* ✅ Role select disabled for now in edit mode */}
         <Select
           label="Role"
           value={role}
           onChange={(e) => setRole(e.target.value as UserRole)}
+          disabled={!isCreate || !!props.disableRole}
           options={[
             { label: "Student", value: "student" },
             { label: "Teacher", value: "teacher" },
@@ -89,7 +97,7 @@ const UserForm: React.FC<Props> = (props) => {
       </div>
 
       {role === "student" ? (
-        <Input label="Grade (optional)" value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="Grade 8" />
+        <Input label="Grade (optional)" value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="A Level" />
       ) : null}
 
       {role === "teacher" ? (
@@ -99,7 +107,6 @@ const UserForm: React.FC<Props> = (props) => {
         </label>
       ) : null}
 
-      {/* Buttons: wrap safely on small screens */}
       <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
         <Button variant="outline" onClick={props.onCancel} disabled={props.isSubmitting}>
           Cancel

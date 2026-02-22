@@ -1,20 +1,21 @@
-﻿
-export type UserRole = "student" | "teacher" | "admin";
+﻿export type UserRole = "student" | "teacher" | "admin" | "super_admin";
 export type UserStatus = "active" | "disabled" | "banned";
 
 export type UserRow = {
-  id: string;
-  name: string;
+  id: string; // Firestore doc id (uid)
+  uid?: string; // duplicate for clarity
+  name: string | null;
   email: string;
+  avatarUrl?: string | null; // ✅ added
   role: UserRole;
   status: UserStatus;
-  createdAt: string; // ISO
-  grade?: string; // student
-  verified?: boolean; // teacher
+  createdAt: string; // ISO (mapped from Timestamp)
+  grade?: string | null;
+  verified?: boolean | null;
 };
 
 export type UsersListQuery = {
-  role: UserRole;
+  role: Exclude<UserRole, "super_admin"> | "admin"; // UI tabs: student/teacher/admin
   page: number; // 1-based
   pageSize: number;
   search?: string;
@@ -27,16 +28,19 @@ export type UsersListResponse = {
 };
 
 export type UserDetails = UserRow & {
-  phone?: string;
-  bio?: string;
+  phone?: string | null;
+  gender?: string | null;
+  age?: string | number | null;
+  onboarded?: boolean | null;
+  lastLoginAt?: string | null; // ISO
+  updatedAt?: string | null; // ISO
 
-  // Student-only
+  // Future (keep for later)
   enrollments?: { id: string; courseTitle: string; completionRate: number }[];
   progress?: { completionRate: number; watchMinutes: number };
   tokens?: { id: string; type: "earned" | "spent"; amount: number; note: string; at: string }[];
   purchases?: { id: string; item: string; amount: number; currency: string; at: string }[];
 
-  // Teacher-only
   assignedCourses?: { id: string; title: string }[];
   liveHosted?: { id: string; title: string; at: string; attendance: number }[];
 };
@@ -44,11 +48,14 @@ export type UserDetails = UserRow & {
 export type UpsertUserInput = {
   name: string;
   email: string;
-  role: UserRole;
+  role: Exclude<UserRole, "super_admin"> | "admin";
   status: UserStatus;
   grade?: string;
   verified?: boolean;
   phone?: string;
+  avatarUrl?: string | null; // added
+  age?: string | number;
+  gender?: string;
 };
 
 export type AdminClaims = {
