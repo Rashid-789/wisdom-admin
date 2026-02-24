@@ -188,3 +188,17 @@ export async function upsertExercise(input: Partial<Exercise> & Pick<Exercise, "
   EXERCISES.unshift(newRow);
   return newRow;
 }
+
+export async function getSubject(subjectId: string): Promise<Subject> {
+  await sleep(120);
+  const s = SUBJECTS.find((x) => x.id === subjectId);
+  if (!s) throw new Error("Subject not found");
+  return s;
+}
+
+export async function getLecture(lectureId: string): Promise<Lecture> {
+  await sleep(120);
+  const l = LECTURES.find((x) => x.id === lectureId);
+  if (!l) throw new Error("Lecture not found");
+  return l;
+}

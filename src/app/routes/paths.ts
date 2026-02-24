@@ -12,21 +12,12 @@ export const paths = {
     },
 
     content: {
-      root: "/admin/content",
       subjects: "/admin/content/subjects",
+      subjectDetail: (subjectId: string) => `/admin/content/subjects/${subjectId}`,
       courses: "/admin/content/courses",
       courseDetail: (courseId: string) => `/admin/content/courses/${courseId}`,
-      lectures: "/admin/content/lectures",
-      exercises: "/admin/content/exercises",
     },
 
-    live: {
-      root: "/admin/live-classes",
-      list: "/admin/live-classes",
-      calendar: "/admin/live-classes/calendar",
-      detail: (id: string) => `/admin/live-classes/${id}`,
-    },
-    // Alias for live classes for clarity in pages
     liveClasses: {
       root: "/admin/live-classes",
       list: "/admin/live-classes",
@@ -51,9 +42,7 @@ export const paths = {
     settings: {
       root: "/admin/settings",
       account: "/admin/settings/account",
-      app: "/admin/settings/app",
       notifications: "/admin/settings/notifications",
-      auditLogs: "/admin/settings/audit-logs",
     },
   },
 } as const;

@@ -4,7 +4,6 @@ import type { Course, Lecture } from "../../Types/content.types";
 import { listLectures } from "../../Api/content.api";
 import LectureUploadCard from "../components/lectures/LectureUploadCard";
 import LectureEditorDrawer from "../components/lectures/LectureEditorDrawer";
-import AttachLectureModal from "../components/lectures/AttachLectureModal";
 
 export default function LecturesTab({ course }: { course: Course }) {
   const [search, setSearch] = React.useState("");
@@ -16,7 +15,6 @@ export default function LecturesTab({ course }: { course: Course }) {
   const [loading, setLoading] = React.useState(true);
 
   const [editLectureId, setEditLectureId] = React.useState<string | null>(null);
-  const [attachOpen, setAttachOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -34,7 +32,6 @@ export default function LecturesTab({ course }: { course: Course }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_420px]">
-        {/* Left: library */}
         <Card>
           <CardContent className="p-4 sm:p-6 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -47,10 +44,7 @@ export default function LecturesTab({ course }: { course: Course }) {
                   setPage(1);
                 }}
               />
-
-              <Button variant="outline" onClick={() => setAttachOpen(true)}>
-                Attach to Topic
-              </Button>
+              <Button variant="outline" onClick={load}>Refresh</Button>
             </div>
 
             <DataTable
@@ -63,14 +57,13 @@ export default function LecturesTab({ course }: { course: Course }) {
               ]}
               onRowClick={(r) => setEditLectureId(r.id)}
               emptyTitle="No lectures yet"
-              emptyDescription="Upload a lecture or create one in the library."
+              emptyDescription="Create lecture videos for Skill course (direct video list)."
             />
 
             <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
           </CardContent>
         </Card>
 
-        {/* Right: upload */}
         <LectureUploadCard courseId={course.id} onUploaded={load} />
       </div>
 
@@ -80,9 +73,6 @@ export default function LecturesTab({ course }: { course: Course }) {
         onClose={() => setEditLectureId(null)}
         onSaved={load}
       />
-
-      <AttachLectureModal open={attachOpen} onClose={() => setAttachOpen(false)} courseId={course.id} />
     </>
   );
 }
-

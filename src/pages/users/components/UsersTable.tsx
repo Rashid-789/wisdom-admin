@@ -1,15 +1,13 @@
 ﻿import React from "react";
-import toast from "react-hot-toast";
-
-import type { UserRow } from "../Types/users.types";
-import { useUsersList } from "../useUsersList";
+import type { UserRole, UserRow } from "../Types/users.types";
+import { useDebouncedValue } from "../../../app/shared";
+import { useUsersPagination } from "../hooks/useUsersPagination";
 import {
   Button,
   Card,
   CardContent,
   DataTable,
   Input,
-  Pagination,
   Select,
   type Column,
 } from "../../../app/shared";
@@ -31,22 +29,27 @@ function initials(name: string | null, email: string) {
   return (a + b).toUpperCase();
 }
 
-const UsersTable: React.FC = () => {
+const UsersTable: React.FC<{ fixedRole?: UserRole }> = ({ fixedRole }) => {
+  const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const [status, setStatus] = React.useState<"all" | "active" | "disabled" | "banned">("all");
+
   const {
-    data,
-    isLoading,
+    rows,
+    loading,
     error,
-    page,
     pageSize,
-    setPage,
-    search,
-    setSearch,
-    status,
-    setStatus,
+    setPageSize,
+    pageIndex,
+    hasNext,
+    hasPrev,
+    nextPage,
+    prevPage,
     refresh,
-  } = useUsersList();
+  } = useUsersPagination({ status, search: debouncedSearch });
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   const columns: Column<UserRow>[] = [
     {
@@ -86,7 +89,10 @@ const UsersTable: React.FC = () => {
     {
       key: "verified",
       header: "Verified",
-      cell: (r) => (r.role === "teacher" ? (r.verified ? "Yes" : "No") : "—"),
+      cell: (r) =>
+        r.role === "teacher" || r.role === "admin" || r.role === "super_admin"
+          ? (r.verified ? "Yes" : "No")
+          : "—",
     },
   ];
 
@@ -95,7 +101,7 @@ const UsersTable: React.FC = () => {
       <Card>
         <CardContent className="p-4 sm:p-6">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-[720px]">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:max-w-[960px]">
               <Input
                 label="Search"
                 placeholder="Search by name or email..."
@@ -106,7 +112,6 @@ const UsersTable: React.FC = () => {
               <Select
                 label="Status"
                 value={status}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e) => setStatus(e.target.value as any)}
                 options={[
                   { label: "All", value: "all" },
@@ -115,21 +120,26 @@ const UsersTable: React.FC = () => {
                   { label: "Banned", value: "banned" },
                 ]}
               />
+
+              <Select
+                label="Rows"
+                value={String(pageSize)}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                options={[
+                  { label: "10", value: "10" },
+                  { label: "20", value: "20" },
+                  { label: "30", value: "30" },
+                  { label: "50", value: "50" },
+                ]}
+              />
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button variant="outline" onClick={refresh}>
+              <Button variant="outline" onClick={refresh} disabled={loading}>
                 Refresh
               </Button>
 
-              {/* ✅ Disabled for now (needs Cloud Function to create Auth user + claims) */}
-              <Button
-                onClick={() =>
-                  toast("Add User will be enabled after Cloud Function (adminCreateUser).", {
-                    icon: "ℹ️",
-                  })
-                }
-              >
+              <Button onClick={() => setCreateOpen(true)}>
                 Add User
               </Button>
             </div>
@@ -144,9 +154,9 @@ const UsersTable: React.FC = () => {
               <div className="min-w-[760px] sm:min-w-0">
                 <DataTable
                   columns={columns}
-                  rows={data.rows}
+                  rows={rows}
                   rowKey={(r) => r.id}
-                  isLoading={isLoading}
+                  isLoading={loading}
                   emptyTitle="No users found"
                   emptyDescription="Try adjusting search or filters."
                   onRowClick={(row) => setSelectedId(row.id)}
@@ -155,8 +165,24 @@ const UsersTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-4">
-            <Pagination page={page} pageSize={pageSize} total={data.total} onPageChange={setPage} />
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              Page <span className="font-medium text-slate-900">{pageIndex + 1}</span>
+              {rows.length ? (
+                <>
+                  {" "}· Showing <span className="font-medium text-slate-900">{rows.length}</span> users
+                </>
+              ) : null}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={!hasPrev || loading} onClick={prevPage}>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled={!hasNext || loading} onClick={nextPage}>
+                Next
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -167,6 +193,15 @@ const UsersTable: React.FC = () => {
         userId={selectedId}
         mode="view"
         onClose={() => setSelectedId(null)}
+        onSaved={() => refresh()}
+      />
+
+      <UserDrawer
+        open={createOpen}
+        userId={null}
+        mode="create"
+        fixedRole={fixedRole}
+        onClose={() => setCreateOpen(false)}
         onSaved={() => refresh()}
       />
     </>

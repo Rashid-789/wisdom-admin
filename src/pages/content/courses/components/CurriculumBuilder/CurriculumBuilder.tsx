@@ -1,21 +1,16 @@
 ﻿import React from "react";
-import type { CourseCurriculum, Chapter } from "../../../Types/content.types";
+import type { CourseCurriculum, Chapter, Topic } from "../../../Types/content.types";
 import { Button, Card, CardContent, Drawer, Input } from "../../../../../app/shared";
 import ChapterCard from "./ChapterCard";
 
-/**
- * CurriculumBuilder responsibilities:
- * - Add/edit chapters + topics
- * - Reorder chapters & topics (drag-drop)
- * - Attach lecture/exercise is handled in Lectures/Exercises tabs
- */
 type Props = {
   value: CourseCurriculum;
   onChange: (next: CourseCurriculum) => void;
+  onEditTopic: (chapterId: string, topic: Topic) => void;
   isLoading?: boolean;
 };
 
-export default function CurriculumBuilder({ value, onChange, isLoading }: Props) {
+export default function CurriculumBuilder({ value, onChange, onEditTopic, isLoading }: Props) {
   const [chapterDrawer, setChapterDrawer] = React.useState(false);
   const [newChapterTitle, setNewChapterTitle] = React.useState("");
 
@@ -62,6 +57,7 @@ export default function CurriculumBuilder({ value, onChange, isLoading }: Props)
               <ChapterCard
                 key={ch.id}
                 chapter={ch}
+                onEditTopic={(t) => onEditTopic(ch.id, t)}
                 onChangeChapter={(updated) => {
                   onChange({
                     ...value,
@@ -69,7 +65,9 @@ export default function CurriculumBuilder({ value, onChange, isLoading }: Props)
                   });
                 }}
                 onDeleteChapter={() => {
-                  const next = value.chapters.filter((c) => c.id !== ch.id).map((c, idx) => ({ ...c, order: idx + 1 }));
+                  const next = value.chapters
+                    .filter((c) => c.id !== ch.id)
+                    .map((c, idx) => ({ ...c, order: idx + 1 }));
                   onChange({ ...value, chapters: next });
                 }}
               />
@@ -77,11 +75,15 @@ export default function CurriculumBuilder({ value, onChange, isLoading }: Props)
         </div>
       )}
 
-      {/* Add chapter drawer */}
       <Drawer open={chapterDrawer} onClose={() => setChapterDrawer(false)} title="Add Chapter" description="Chapters contain topics.">
         <Card>
           <CardContent className="p-4 space-y-3">
-            <Input label="Chapter title" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} placeholder="Introduction" />
+            <Input
+              label="Chapter title"
+              value={newChapterTitle}
+              onChange={(e) => setNewChapterTitle(e.target.value)}
+              placeholder="Introduction"
+            />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setChapterDrawer(false)}>Cancel</Button>
               <Button onClick={addChapter} disabled={!newChapterTitle.trim()}>Add</Button>
@@ -92,4 +94,3 @@ export default function CurriculumBuilder({ value, onChange, isLoading }: Props)
     </div>
   );
 }
-

@@ -3,22 +3,14 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button, Card, CardContent, Drawer, Input } from "../../../../../app/shared";
 import type { Chapter, Topic } from "../../../Types/content.types";
 
-/**
- * ChapterCard manages:
- * - Add topic
- * - Edit chapter title
- * - Local ordering via buttons (drag-drop can be added later too)
- *
- * NOTE: We keep it simple + clean. If you want drag-drop inside topics,
- * we can wire @dnd-kit here as well.
- */
 type Props = {
   chapter: Chapter;
   onChangeChapter: (next: Chapter) => void;
   onDeleteChapter: () => void;
+  onEditTopic: (topic: Topic) => void;
 };
 
-export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter }: Props) {
+export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter, onEditTopic }: Props) {
   const [topicDrawer, setTopicDrawer] = React.useState(false);
   const [topicTitle, setTopicTitle] = React.useState("");
 
@@ -30,6 +22,7 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter 
       id: `t_${Math.random().toString(16).slice(2)}`,
       title: t,
       order: chapter.topics.length + 1,
+      rewardTokens: 0,
     };
 
     onChangeChapter({ ...chapter, topics: [...chapter.topics, next] });
@@ -45,7 +38,7 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter 
 
     const a = sorted[idx];
     const b = sorted[target];
-    // swap orders
+
     const next = sorted.map((x) => {
       if (x.id === a.id) return { ...x, order: b.order };
       if (x.id === b.id) return { ...x, order: a.order };
@@ -80,11 +73,23 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter 
               .slice()
               .sort((a, b) => a.order - b.order)
               .map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-2 rounded-2xl border border-slate-100 bg-white px-3 py-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between gap-2 rounded-2xl border border-slate-100 bg-white px-3 py-2"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onEditTopic(t)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
                     <GripVertical size={16} className="text-slate-300" />
-                    <p className="truncate text-sm text-slate-800">{t.title}</p>
-                  </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-slate-800">{t.title}</p>
+                      <p className="text-xs text-slate-500">
+                        Tokens: {t.rewardTokens ?? 0} • Video: {t.lectureId ? "attached" : "none"}
+                      </p>
+                    </div>
+                  </button>
 
                   <div className="flex items-center gap-1">
                     <button className="rounded-xl px-2 py-1 text-xs text-slate-600 hover:bg-slate-50" onClick={() => moveTopic(t.id, -1)}>
@@ -100,7 +105,7 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter 
         </CardContent>
       </Card>
 
-      <Drawer open={topicDrawer} onClose={() => setTopicDrawer(false)} title="Add Topic" description="Topics hold lecture + optional exercise.">
+      <Drawer open={topicDrawer} onClose={() => setTopicDrawer(false)} title="Add Topic" description="Topic holds lecture video + tokens + optional exercise.">
         <Card>
           <CardContent className="p-4 space-y-3">
             <Input label="Topic title" value={topicTitle} onChange={(e) => setTopicTitle(e.target.value)} placeholder="Basic Ratios" />
@@ -114,4 +119,3 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter 
     </>
   );
 }
-

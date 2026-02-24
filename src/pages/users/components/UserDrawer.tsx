@@ -2,18 +2,25 @@
 import React from "react";
 import toast from "react-hot-toast";
 
-import type { UserDetails } from "../Types/users.types";
-import { setUserStatusApi, updateUserApi } from "../Api/users.api";
+import type { UserDetails, UserFormValues, UserRole } from "../Types/users.types";
+import {
+  createUserApi,
+  deleteUserAvatar,
+  setUserStatusApi,
+  updateUserApi,
+  uploadUserAvatar,
+} from "../Api/users.api";
 import { useUserDetails } from "../useUserDetails";
-import { Button, Card, CardContent, ConfirmDialog, Drawer, EmptyState } from "../../../app/shared";
+import { Button, Card, CardContent, ConfirmDialog, Drawer, EmptyState, Modal } from "../../../app/shared";
 import UserForm from "./UserForm";
 
-type Mode = "view"; // ✅ create disabled for now
+type Mode = "view" | "create";
 
 type Props = {
   open: boolean;
   userId: string | null;
   mode: Mode;
+  fixedRole?: UserRole;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -33,8 +40,9 @@ const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
   </div>
 );
 
-const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
-  const { data, isLoading, error, setData } = useUserDetails(open ? userId : null);
+const UserDrawer: React.FC<Props> = ({ open, userId, mode, fixedRole, onClose, onSaved }) => {
+  const isCreate = mode === "create";
+  const { data, isLoading, error, setData } = useUserDetails(!isCreate && open ? userId : null);
 
   const [isEditing, setIsEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -42,18 +50,55 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
   const [confirmDisableOpen, setConfirmDisableOpen] = React.useState(false);
   const [confirmBanOpen, setConfirmBanOpen] = React.useState(false);
 
+  const [tempPassword, setTempPassword] = React.useState<string | null>(null);
+  const [tempOpen, setTempOpen] = React.useState(false);
+
   React.useEffect(() => {
-    if (!open) setIsEditing(false);
+    if (!open) {
+      setIsEditing(false);
+      setTempPassword(null);
+      setTempOpen(false);
+    }
   }, [open]);
 
-  const handleSaveUpdate = async (id: string, patch: any) => {
+  const handleSaveUpdate = async (id: string, patch: Partial<UserFormValues>) => {
+    if (!data) return;
+
     setSaving(true);
     try {
-      const updated = await updateUserApi(id, patch);
+      const prevAvatarPath = data.avatarPath ?? null;
+      const prevAvatarUrl = data.avatarUrl ?? null;
+
+      const hasAvatarUrl = Object.prototype.hasOwnProperty.call(patch, "avatarUrl");
+      const hasAvatarPath = Object.prototype.hasOwnProperty.call(patch, "avatarPath");
+      let nextAvatarUrl = hasAvatarUrl ? (patch.avatarUrl ?? null) : prevAvatarUrl;
+      let nextAvatarPath = hasAvatarPath ? (patch.avatarPath ?? null) : prevAvatarPath;
+      const avatarFile = patch.avatarFile ?? null;
+
+      if (avatarFile) {
+        const uploaded = await uploadUserAvatar({ file: avatarFile, userId: id });
+        nextAvatarUrl = uploaded.url;
+        nextAvatarPath = uploaded.path;
+      }
+
+      const updatePatch: Partial<UserFormValues> = {
+        ...patch,
+        avatarUrl: nextAvatarUrl ?? null,
+        avatarPath: nextAvatarPath ?? null,
+      };
+      delete updatePatch.avatarFile;
+
+      const updated = await updateUserApi(id, updatePatch as any);
       setData(updated as UserDetails);
       setIsEditing(false);
       toast.success("Saved ✅");
       onSaved();
+
+      if (avatarFile && prevAvatarPath) {
+        await deleteUserAvatar(prevAvatarPath);
+      } else if (!avatarFile && prevAvatarPath && nextAvatarPath === null && nextAvatarUrl !== prevAvatarUrl) {
+        await deleteUserAvatar(prevAvatarPath);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to save");
     } finally {
@@ -76,15 +121,68 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
     }
   };
 
+  const handleCreate = async (input: UserFormValues) => {
+    setSaving(true);
+    try {
+      const role: UserRole = fixedRole ?? "student";
+      const { avatarFile, ...rest } = input;
+      const createPayload = {
+        ...rest,
+        role,
+        avatarUrl: avatarFile ? null : rest.avatarUrl ?? null,
+        avatarPath: avatarFile ? null : rest.avatarPath ?? null,
+      };
+
+      const res = await createUserApi(createPayload as any);
+
+      if (avatarFile) {
+        try {
+          const uploaded = await uploadUserAvatar({ file: avatarFile, userId: res.uid });
+          await updateUserApi(res.uid, { avatarUrl: uploaded.url, avatarPath: uploaded.path } as any);
+        } catch (err: any) {
+          toast.error(err?.message ?? "Avatar upload failed");
+        }
+      }
+
+      if (res.tempPassword) {
+        setTempPassword(res.tempPassword);
+        setTempOpen(true);
+      }
+      toast.success("User created ✅");
+      onSaved();
+      if (!res.tempPassword) {
+        onClose();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to create user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const canReactivate = data?.status === "disabled" || data?.status === "banned";
+
   return (
     <Drawer
       open={open}
       onClose={onClose}
-      title="User Details"
-      description="View and manage user profile"
+      title={isCreate ? "Create User" : "User Details"}
+      description={isCreate ? "Create a new user account" : "View and manage user profile"}
     >
       <div className="w-full min-w-0">
-        {isLoading ? (
+        {isCreate ? (
+          <Card>
+            <CardContent className="p-4">
+              <UserForm
+                mode="create"
+                fixedRole={fixedRole}
+                isSubmitting={saving}
+                onCancel={onClose}
+                onSubmit={handleCreate}
+              />
+            </CardContent>
+          </Card>
+        ) : isLoading ? (
           <div className="space-y-3">
             <div className="h-24 w-full animate-pulse rounded-2xl bg-slate-100" />
             <div className="h-64 w-full animate-pulse rounded-2xl bg-slate-100" />
@@ -114,15 +212,6 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-semibold text-slate-900">{data.name ?? "—"}</p>
                     <p className="truncate text-sm text-slate-500">{data.email}</p>
-
-                    {/* Future: avatar upload via Storage */}
-                    <button
-                      type="button"
-                      className="mt-1 text-sm font-medium text-slate-900 underline underline-offset-4"
-                      onClick={() => toast("Avatar upload will be added with Storage integration.", { icon: "ℹ️" })}
-                    >
-                      Change Picture
-                    </button>
                   </div>
                 </div>
 
@@ -134,6 +223,9 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
                   <InfoRow label="Gender" value={data.gender ?? "—"} />
                   <InfoRow label="Age" value={data.age ?? "—"} />
                   <InfoRow label="Grade" value={data.grade ?? "—"} />
+                  {(data.role === "teacher" || data.role === "admin" || data.role === "super_admin") ? (
+                    <InfoRow label="Verified" value={data.verified ? "Yes" : "No"} />
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
@@ -144,19 +236,21 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
                 {isEditing ? "Cancel Edit" : "Edit"}
               </Button>
 
-              {data.status !== "disabled" ? (
+              {canReactivate ? (
+                <Button onClick={() => handleSetStatus("active")} disabled={saving}>
+                  Reactivate
+                </Button>
+              ) : (
                 <Button variant="outline" onClick={() => setConfirmDisableOpen(true)} disabled={saving}>
                   Disable
                 </Button>
-              ) : (
-                <Button variant="outline" onClick={() => handleSetStatus("active")} disabled={saving}>
-                  Enable
-                </Button>
               )}
 
-              <Button variant="danger" onClick={() => setConfirmBanOpen(true)} disabled={saving}>
-                Ban
-              </Button>
+              {data.status !== "banned" ? (
+                <Button variant="danger" onClick={() => setConfirmBanOpen(true)} disabled={saving}>
+                  Ban
+                </Button>
+              ) : null}
 
               {/* Future:
                   - Reset password (Cloud Function)
@@ -173,7 +267,6 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
                     isSubmitting={saving}
                     onCancel={() => setIsEditing(false)}
                     onSubmit={(patch) => handleSaveUpdate(data.id, patch)}
-                    disableRole //  prevent role edits for now
                   />
                 </CardContent>
               </Card>
@@ -213,6 +306,46 @@ const UserDrawer: React.FC<Props> = ({ open, userId, onClose, onSaved }) => {
           </div>
         ) : null}
       </div>
+
+      <Modal
+        open={tempOpen}
+        onClose={() => {
+          setTempOpen(false);
+          setTempPassword(null);
+          onClose();
+        }}
+        title="Temporary Password"
+        description="Share this password with the user. They should change it after first login."
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (tempPassword) {
+                  void navigator.clipboard.writeText(tempPassword);
+                  toast.success("Copied");
+                }
+              }}
+            >
+              Copy
+            </Button>
+            <Button
+              onClick={() => {
+                setTempOpen(false);
+                setTempPassword(null);
+                onClose();
+              }}
+            >
+              Done
+            </Button>
+          </div>
+        }
+      >
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-900">
+          {tempPassword ?? "—"}
+        </div>
+      </Modal>
     </Drawer>
   );
 };

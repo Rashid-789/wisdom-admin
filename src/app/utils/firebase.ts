@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { browserLocalPersistence, getAuth, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
 const firebaseEnv = {
   VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -50,3 +51,4 @@ export const authReady = setPersistence(auth, browserLocalPersistence).catch((er
 });
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app, "us-central1");

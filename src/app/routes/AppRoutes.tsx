@@ -5,19 +5,17 @@ import AdminLayout from "../layout/AdminLayout/AdminLayout";
 import RequireAdmin from "../../auth/RequireAdmin";
 import NotFoundPage from "../../pages/Dashboard/NotFoundPage";
 
-// Public auth pages
 import LoginPage from "../../pages/auth/LoginPage";
 import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
 
-// Admin pages (your existing imports)
 import DashboardPage from "../../pages/Dashboard/DashboardPage";
 import UsersLayoutPage from "../../pages/users/UsersLayoutPage";
 import UsersListPage from "../../pages/users/UsersListPage";
 
-import ContentLayoutPage from "../../pages/content/ContentLayoutPage";
-import LecturesLibraryPage from "../../pages/content/lectures/LecturesLibraryPage";
-import ExercisesBankPage from "../../pages/content/exercises/ExercisesBankPage";
+// Content
+import ContentLayoutPage from "../../pages/content/layout/ContentLayoutPage";
 import SubjectsPage from "../../pages/content/subjects/SubjectsPage";
+import SubjectDetailsPage from "../../pages/content/subjects/SubjectDetailsPage"; 
 import CoursesPage from "../../pages/content/courses/CoursesPage";
 import CourseDetailsPage from "../../pages/content/courses/CourseDetailsPage";
 
@@ -59,7 +57,6 @@ const AppRoutes: React.FC = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<DashboardPage />} />
 
           <Route path="users" element={<UsersLayoutPage />}>
@@ -69,13 +66,14 @@ const AppRoutes: React.FC = () => {
             <Route path="admins" element={<Navigate to="/admin/users" replace />} />
           </Route>
 
+          {/* Content only Subjects + Courses */}
           <Route path="content" element={<ContentLayoutPage />}>
             <Route index element={<Navigate to="subjects" replace />} />
             <Route path="subjects" element={<SubjectsPage />} />
+            <Route path="subjects/:subjectId" element={<SubjectDetailsPage />} /> {/* ✅ NEW */}
             <Route path="courses" element={<CoursesPage />} />
             <Route path="courses/:courseId" element={<CourseDetailsPage />} />
-            <Route path="lectures" element={<LecturesLibraryPage />} />
-            <Route path="exercises" element={<ExercisesBankPage />} />
+            {/* Removed: lectures + exercises global pages */}
           </Route>
 
           <Route path="live-classes" element={<LiveClassesLayoutPage />}>

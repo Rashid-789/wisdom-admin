@@ -7,33 +7,47 @@ type Props = {
   open: boolean;
   course: Course | null;
   subjects: Subject[];
+  defaultSubjectId?: string;
+  lockSubject?: boolean;
   onClose: () => void;
   onSaved: () => void;
 };
 
-export default function CourseFormDrawer({ open, course, subjects, onClose, onSaved }: Props) {
+export default function CourseFormDrawer({
+  open,
+  course,
+  subjects,
+  defaultSubjectId,
+  lockSubject,
+  onClose,
+  onSaved,
+}: Props) {
   const isEdit = !!course;
 
   const [title, setTitle] = React.useState(course?.title ?? "");
   const [description, setDescription] = React.useState(course?.description ?? "");
-  const [subjectId, setSubjectId] = React.useState(course?.subjectId ?? (subjects[0]?.id ?? ""));
+  const [subjectId, setSubjectId] = React.useState(course?.subjectId ?? (defaultSubjectId ?? subjects[0]?.id ?? ""));
   const [category, setCategory] = React.useState<CourseCategory>(course?.category ?? "basic");
   const [status, setStatus] = React.useState<PublishStatus>(course?.status ?? "draft");
-
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     setTitle(course?.title ?? "");
     setDescription(course?.description ?? "");
-    setSubjectId(course?.subjectId ?? (subjects[0]?.id ?? ""));
+    setSubjectId(course?.subjectId ?? (defaultSubjectId ?? subjects[0]?.id ?? ""));
     setCategory(course?.category ?? "basic");
     setStatus(course?.status ?? "draft");
-  }, [course, subjects]);
+  }, [course, subjects, defaultSubjectId]);
 
   const canSave = title.trim().length > 2 && subjectId;
 
   return (
-    <Drawer open={open} onClose={onClose} title={isEdit ? "Edit Course" : "Add Course"} description="Courses contain chapters, topics, lectures and optional exercises.">
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={isEdit ? "Edit Course" : "Add Course"}
+      description="Basic = Chapters/Topics. Skill = Direct lecture videos."
+    >
       <Card>
         <CardContent className="p-4 space-y-3">
           <Input label="Course Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Trigonometry" />
@@ -44,6 +58,7 @@ export default function CourseFormDrawer({ open, course, subjects, onClose, onSa
               label="Subject"
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
+              disabled={!!lockSubject}
               options={subjects.map((s) => ({ label: s.title, value: s.id }))}
             />
 
@@ -77,8 +92,23 @@ export default function CourseFormDrawer({ open, course, subjects, onClose, onSa
               onClick={async () => {
                 setSaving(true);
                 try {
-                  if (isEdit) await updateCourse(course!.id, { title: title.trim(), description: description.trim() || undefined, subjectId, category, status });
-                  else await createCourse({ title: title.trim(), description: description.trim() || undefined, subjectId, category, status });
+                  if (isEdit) {
+                    await updateCourse(course!.id, {
+                      title: title.trim(),
+                      description: description.trim() || undefined,
+                      subjectId,
+                      category,
+                      status,
+                    });
+                  } else {
+                    await createCourse({
+                      title: title.trim(),
+                      description: description.trim() || undefined,
+                      subjectId,
+                      category,
+                      status,
+                    });
+                  }
                   onSaved();
                 } finally {
                   setSaving(false);
@@ -93,4 +123,3 @@ export default function CourseFormDrawer({ open, course, subjects, onClose, onSa
     </Drawer>
   );
 }
-

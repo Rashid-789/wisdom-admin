@@ -15,7 +15,6 @@ export type UserRow = {
 };
 
 export type UsersListQuery = {
-  role: Exclude<UserRole, "super_admin"> | "admin"; // UI tabs: student/teacher/admin
   page: number; // 1-based
   pageSize: number;
   search?: string;
@@ -31,6 +30,7 @@ export type UserDetails = UserRow & {
   phone?: string | null;
   gender?: string | null;
   age?: string | number | null;
+  avatarPath?: string | null;
   onboarded?: boolean | null;
   lastLoginAt?: string | null; // ISO
   updatedAt?: string | null; // ISO
@@ -54,10 +54,26 @@ export type UpsertUserInput = {
   verified?: boolean;
   phone?: string;
   avatarUrl?: string | null; // added
+  avatarPath?: string | null;
   age?: string | number;
   gender?: string;
 };
 
 export type AdminClaims = {
   isSuperAdmin: boolean;
+};
+
+export type UserFormValues = {
+  name: string;
+  email: string;
+  status: UserStatus;
+  grade?: string | null;
+  verified?: boolean | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  avatarPath?: string | null;
+  avatarFile?: File | null;
+  age?: string | number | null;
+  gender?: string | null;
+  password?: string;
 };

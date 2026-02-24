@@ -16,10 +16,8 @@ export function useUsersList() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const role = "student" as const;
-
   const query: UsersListQuery = React.useMemo(
-    () => ({ role, page, pageSize, search: debouncedSearch, status }),
+    () => ({ page, pageSize, search: debouncedSearch, status }),
     [page, pageSize, debouncedSearch, status],
   );
 

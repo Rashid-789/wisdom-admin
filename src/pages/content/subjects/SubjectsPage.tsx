@@ -1,21 +1,19 @@
-﻿
-import React from "react";
+﻿import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, DataTable, Input, Pagination, Button } from "../../../app/shared";
+import { paths } from "../../../app/routes/paths";
 import type { Subject } from "../Types/content.types";
 import { listSubjects } from "../Api/content.api";
 import SubjectFormDrawer from "./components/SubjectFormDrawer";
-import { SectionTabs } from "../../../app/shared";
-import { contentTabs } from "../../../app/shared/tabs";
-
-
-type Row = Subject;
 
 export default function SubjectsPage() {
+  const nav = useNavigate();
+
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
   const pageSize = 10;
 
-  const [rows, setRows] = React.useState<Row[]>([]);
+  const [rows, setRows] = React.useState<Subject[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
 
@@ -38,23 +36,17 @@ export default function SubjectsPage() {
   return (
     <>
       <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="mb-4 flex flex-wrap items-end justify-end gap-3">
-        <SectionTabs tabs={contentTabs} />
-      </div>
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="w-full max-w-[520px]">
-              <Input
-                label="Search Subjects"
-                placeholder="e.g. Mathematics"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <Input
+              label="Search Subjects"
+              placeholder="e.g. Mathematics"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
             <Button
               onClick={() => {
                 setEditing(null);
@@ -74,17 +66,12 @@ export default function SubjectsPage() {
               { key: "gradeRange", header: "Grade", cell: (r) => r.gradeRange ?? "-" },
               { key: "createdAt", header: "Created", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
             ]}
-            onRowClick={(r) => {
-              setEditing(r);
-              setDrawerOpen(true);
-            }}
+            onRowClick={(r) => nav(paths.admin.content.subjectDetail(r.id))}
             emptyTitle="No subjects found"
-            emptyDescription="Create your first subject to start building courses."
+            emptyDescription="Create a subject to group courses (e.g., Mathematics, Physics)."
           />
 
-          <div className="mt-4">
-            <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
-          </div>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 

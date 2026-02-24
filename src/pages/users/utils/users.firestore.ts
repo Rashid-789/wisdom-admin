@@ -48,6 +48,7 @@ export function mapUserDocToDetails(snap: QueryDocumentSnapshot<DocumentData>): 
     phone: (d.phone ?? null) as string | null,
     gender: (d.gender ?? null) as string | null,
     age: (d.age ?? null) as string | number | null,
+    avatarPath: (d.avatarPath ?? null) as string | null,
     onboarded: (d.onboarded ?? null) as boolean | null,
     lastLoginAt: toIso(d.lastLoginAt),
     updatedAt: toIso(d.updatedAt),

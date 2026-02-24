@@ -1,7 +1,7 @@
 ﻿
 export type CourseCategory = "basic" | "skill";
 export type PublishStatus = "draft" | "published" | "scheduled";
-
+export type VideoSource = "upload" | "link";
 export type Subject = {
   id: string;
   title: string;         // e.g. Applied Mathematics
@@ -31,8 +31,10 @@ export type Topic = {
   id: string;
   title: string;
   order: number;
-  lectureId?: string;   // optional
-  exerciseId?: string;  // optional
+
+  rewardTokens?: number;   
+  lectureId?: string;   
+  exerciseId?: string;
 };
 
 export type CourseCurriculum = {
@@ -42,16 +44,17 @@ export type CourseCurriculum = {
 
 export type SpeedPoint = {
   id: string;
-  timeSec: number; // timestamp in seconds
-  label: string;   // e.g. "Derivatives rule"
+  timeSec: number; 
+  label: string;   
 };
 
 export type Lecture = {
   id: string;
   title: string;
-  courseId?: string; // library can be global, but usually linked
+  courseId?: string;
   durationSec?: number;
-  videoUrl?: string; // later: Firebase Storage URL
+  videoUrl?: string;          
+  videoSource?: VideoSource; 
   transcript?: string;
   speedPoints: SpeedPoint[];
   createdAt: string;
@@ -63,7 +66,6 @@ export type Exercise = {
   id: string;
   title: string;
   kind: ExerciseKind;
-  // minimal builder structure (expand later)
   questions: Array<
     | { type: "mcq"; prompt: string; options: string[]; correctIndex: number }
     | { type: "short"; prompt: string; sampleAnswer?: string }
@@ -82,3 +84,4 @@ export type ListResponse<T> = {
   rows: T[];
   total: number;
 };
+
