@@ -43,10 +43,6 @@ export default function TopicDrawer({
     setSpeedPoints(topic?.speedPoints ?? []);
   }, [topic, open]);
 
-  if (!open || !local) return null;
-
-  const canAttachVideo = mode === "upload" ? Boolean(file) : isValidHttpUrl(link.trim());
-
   const emitTopicChange = React.useCallback(
     (nextTopic: Topic) => {
       setLocal(nextTopic);
@@ -58,6 +54,10 @@ export default function TopicDrawer({
     },
     [onChangeTopic]
   );
+
+  if (!open || !local) return null;
+
+  const canAttachVideo = mode === "upload" ? Boolean(file) : isValidHttpUrl(link.trim());
 
   return (
     <Drawer
