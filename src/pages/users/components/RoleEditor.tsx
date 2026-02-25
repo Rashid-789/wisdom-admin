@@ -1,14 +1,15 @@
-﻿import React from "react";
+import React from "react";
 import type { UserDetails, UserRole } from "../Types/users.types";
 import { Button, Card, CardContent, Select } from "../../../app/shared";
 import { updateUserApi } from "../Api/users.api";
 
-// NOTE: For now we assume super admin is true.
-// Later: read from Firebase custom claims.
 const IS_SUPER_ADMIN = true;
+type EditableRole = Exclude<UserRole, "super_admin">;
 
 const RoleEditor: React.FC<{ user: UserDetails }> = ({ user }) => {
-  const [role, setRole] = React.useState<UserRole>(user.role);
+  const [role, setRole] = React.useState<EditableRole>(
+    user.role === "super_admin" ? "admin" : user.role
+  );
   const [saving, setSaving] = React.useState(false);
 
   if (!IS_SUPER_ADMIN) {
@@ -25,7 +26,7 @@ const RoleEditor: React.FC<{ user: UserDetails }> = ({ user }) => {
         <Select
           label="Role"
           value={role}
-          onChange={(e) => setRole(e.target.value as UserRole)}
+          onChange={(event) => setRole(event.target.value as EditableRole)}
           options={[
             { label: "Student", value: "student" },
             { label: "Teacher", value: "teacher" },

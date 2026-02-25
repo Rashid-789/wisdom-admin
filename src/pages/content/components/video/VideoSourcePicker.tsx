@@ -1,4 +1,3 @@
-// import React from "react";
 import { Button, Input } from "../../../../app/shared";
 import { isValidHttpUrl } from "../../utils/video.utils";
 

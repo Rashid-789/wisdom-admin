@@ -1,23 +1,32 @@
-﻿
-export type CourseCategory = "basic" | "skill";
 export type PublishStatus = "draft" | "published" | "scheduled";
 export type VideoSource = "upload" | "link";
-export type Subject = {
+export type CourseCategory = "basic" | "skill";
+
+export type SpeedPoint = {
   id: string;
-  title: string;         // e.g. Applied Mathematics
-  gradeRange?: string;   // e.g. Grade 8-9
-  createdAt: string;     // ISO
+  timeSec: number;
+  label: string;
 };
 
-export type Course = {
+export type TopicVideo = {
+  source: VideoSource;
+  url: string;
+  durationSec?: number;
+  storagePath?: string;
+};
+
+export type Topic = {
   id: string;
-  subjectId: string;
-  category: CourseCategory; // basic/skill
   title: string;
-  description?: string;
-  status: PublishStatus;
-  scheduledFor?: string; // ISO (if scheduled)
-  createdAt: string;     // ISO
+  order: number;
+  rewardTokens?: number;
+  video?: TopicVideo;
+  transcript?: string;
+  speedPoints?: SpeedPoint[];
+
+  // Legacy compatibility.
+  lectureId?: string;
+  exerciseId?: string;
 };
 
 export type Chapter = {
@@ -27,34 +36,78 @@ export type Chapter = {
   topics: Topic[];
 };
 
-export type Topic = {
-  id: string;
-  title: string;
-  order: number;
-
-  rewardTokens?: number;   
-  lectureId?: string;   
-  exerciseId?: string;
-};
-
 export type CourseCurriculum = {
   courseId: string;
   chapters: Chapter[];
+  updatedAt?: string;
 };
 
-export type SpeedPoint = {
-  id: string;
-  timeSec: number; 
-  label: string;   
+export type BasicSubjectCurriculum = {
+  subjectId: string;
+  chapters: Chapter[];
+  updatedAt?: string;
 };
+
+export type BasicSubject = {
+  id: string;
+  title: string;
+  gradeRange?: string;
+  status: PublishStatus;
+  scheduledFor?: string;
+  createdAt: string;
+};
+
+export type BasicCourse = {
+  id: string;
+  subjectId: string;
+  title: string;
+  description?: string;
+  status: PublishStatus;
+  scheduledFor?: string;
+  createdAt: string;
+};
+
+export type SkillSubject = {
+  id: string;
+  title: string;
+  lecturerName?: string;
+  coverImage?: string;
+  createdAt: string;
+};
+
+export type SkillTopic = {
+  id: string;
+  subjectId: string;
+  title: string;
+  rewardTokens?: number;
+  video: TopicVideo;
+  transcript?: string;
+  speedPoints?: SpeedPoint[];
+  createdAt: string;
+};
+
+export type ListQuery = {
+  page: number;
+  pageSize: number;
+  search?: string;
+};
+
+export type ListResponse<T> = {
+  rows: T[];
+  total: number;
+};
+
+// Legacy aliases for still-existing files. New code should use Basic*/Skill* types.
+export type Subject = BasicSubject;
+export type Course = BasicCourse & { category: CourseCategory };
 
 export type Lecture = {
   id: string;
   title: string;
   courseId?: string;
   durationSec?: number;
-  videoUrl?: string;          
-  videoSource?: VideoSource; 
+  videoUrl?: string;
+  videoSource?: VideoSource;
   transcript?: string;
   speedPoints: SpeedPoint[];
   createdAt: string;
@@ -73,15 +126,3 @@ export type Exercise = {
   >;
   createdAt: string;
 };
-
-export type ListQuery = {
-  page: number;
-  pageSize: number;
-  search?: string;
-};
-
-export type ListResponse<T> = {
-  rows: T[];
-  total: number;
-};
-

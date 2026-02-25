@@ -12,10 +12,11 @@ export const paths = {
     },
 
     content: {
-      subjects: "/admin/content/subjects",
-      subjectDetail: (subjectId: string) => `/admin/content/subjects/${subjectId}`,
-      courses: "/admin/content/courses",
-      courseDetail: (courseId: string) => `/admin/content/courses/${courseId}`,
+      root: "/admin/content",
+      basicSubjects: "/admin/content/basic-subjects",
+      basicSubjectDetail: (subjectId: string) => `/admin/content/basic-subjects/${subjectId}`,
+      skillSubjects: "/admin/content/skill-subjects",
+      skillSubjectDetail: (subjectId: string) => `/admin/content/skill-subjects/${subjectId}`,
     },
 
     liveClasses: {

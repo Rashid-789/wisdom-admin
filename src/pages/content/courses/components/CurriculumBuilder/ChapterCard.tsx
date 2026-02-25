@@ -23,6 +23,7 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter,
       title: t,
       order: chapter.topics.length + 1,
       rewardTokens: 0,
+      speedPoints: [],
     };
 
     onChangeChapter({ ...chapter, topics: [...chapter.topics, next] });
@@ -86,7 +87,7 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter,
                     <div className="min-w-0">
                       <p className="truncate text-sm text-slate-800">{t.title}</p>
                       <p className="text-xs text-slate-500">
-                        Tokens: {t.rewardTokens ?? 0} • Video: {t.lectureId ? "attached" : "none"}
+                        Tokens: {t.rewardTokens ?? 0} • Video: {t.video?.url ? "attached" : "none"}
                       </p>
                     </div>
                   </button>
@@ -105,7 +106,12 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter,
         </CardContent>
       </Card>
 
-      <Drawer open={topicDrawer} onClose={() => setTopicDrawer(false)} title="Add Topic" description="Topic holds lecture video + tokens + optional exercise.">
+      <Drawer
+        open={topicDrawer}
+        onClose={() => setTopicDrawer(false)}
+        title="Add Topic"
+        description="Topic holds direct video content, transcript, speed points, and reward tokens."
+      >
         <Card>
           <CardContent className="p-4 space-y-3">
             <Input label="Topic title" value={topicTitle} onChange={(e) => setTopicTitle(e.target.value)} placeholder="Basic Ratios" />

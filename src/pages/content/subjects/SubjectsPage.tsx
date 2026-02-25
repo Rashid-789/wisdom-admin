@@ -39,7 +39,7 @@ export default function SubjectsPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <Input
-              label="Search Subjects"
+              label="Search Basic Subjects"
               placeholder="e.g. Mathematics"
               value={search}
               onChange={(e) => {
@@ -47,14 +47,16 @@ export default function SubjectsPage() {
                 setPage(1);
               }}
             />
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setDrawerOpen(true);
-              }}
-            >
-              Add Subject
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setDrawerOpen(true);
+                }}
+              >
+                Add Basic Subject
+              </Button>
+            </div>
           </div>
 
           <DataTable
@@ -64,11 +66,12 @@ export default function SubjectsPage() {
             columns={[
               { key: "title", header: "Title", accessor: "title" },
               { key: "gradeRange", header: "Grade", cell: (r) => r.gradeRange ?? "-" },
+              { key: "status", header: "Status", cell: (r) => r.status },
               { key: "createdAt", header: "Created", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
             ]}
-            onRowClick={(r) => nav(paths.admin.content.subjectDetail(r.id))}
-            emptyTitle="No subjects found"
-            emptyDescription="Create a subject to group courses (e.g., Mathematics, Physics)."
+            onRowClick={(r) => nav(paths.admin.content.basicSubjectDetail(r.id))}
+            emptyTitle="No basic subjects found"
+            emptyDescription="Create a basic subject to start building chapters and topics."
           />
 
           <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />

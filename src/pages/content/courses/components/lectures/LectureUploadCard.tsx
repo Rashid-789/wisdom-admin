@@ -5,29 +5,26 @@ import { getVideoDurationSec, safeFileName, isValidHttpUrl } from "../../../util
 import { useFirebaseResumableUpload } from "../../../hooks/useFirebaseResumableUpload";
 import VideoSourcePicker from "../../../components/video/VideoSourcePicker";
 
-export default function LectureUploadCard({
-  courseId,
-  onUploaded,
-}: {
+type Props = {
   courseId: string;
   onUploaded: () => void;
-}) {
+};
+
+export default function LectureUploadCard({ courseId, onUploaded }: Props) {
   const [title, setTitle] = React.useState("");
   const [mode, setMode] = React.useState<"upload" | "link">("upload");
   const [file, setFile] = React.useState<File | null>(null);
   const [link, setLink] = React.useState("");
-
   const [saving, setSaving] = React.useState(false);
 
   const { upload, cancel, state, progress, error } = useFirebaseResumableUpload();
+  const isUploading = state === "uploading";
 
-  const canCreate =
-    title.trim().length > 2 &&
-    (mode === "upload" ? !!file : isValidHttpUrl(link.trim()));
+  const canCreate = title.trim().length > 2 && (mode === "upload" ? Boolean(file) : isValidHttpUrl(link.trim()));
 
   return (
     <Card>
-      <CardContent className="p-4 sm:p-6 space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6">
         <div>
           <p className="text-sm font-semibold text-slate-900">Add Lecture</p>
           <p className="text-sm text-slate-500">
@@ -38,9 +35,9 @@ export default function LectureUploadCard({
         <Input
           label="Lecture Title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           placeholder="Derivatives basics"
-          disabled={saving || state === "uploading"}
+          disabled={saving || isUploading}
         />
 
         <VideoSourcePicker
@@ -50,20 +47,22 @@ export default function LectureUploadCard({
           onFileChange={setFile}
           link={link}
           onLinkChange={setLink}
-          disabled={saving || state === "uploading"}
+          disabled={saving || isUploading}
         />
 
-        {state === "uploading" ? (
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-2">
+        {isUploading ? (
+          <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4">
             <div className="flex items-center justify-between text-sm text-slate-700">
-              <span>Uploading…</span>
+              <span>Uploading...</span>
               <span>{progress}%</span>
             </div>
             <div className="h-2 w-full rounded-full bg-slate-100">
               <div className="h-2 rounded-full bg-slate-900" style={{ width: `${progress}%` }} />
             </div>
             <div className="flex justify-end">
-              <Button variant="outline" onClick={cancel}>Cancel upload</Button>
+              <Button variant="outline" onClick={cancel}>
+                Cancel upload
+              </Button>
             </div>
           </div>
         ) : null}
@@ -72,11 +71,10 @@ export default function LectureUploadCard({
 
         <Button
           isLoading={saving}
-          disabled={!canCreate || saving || state === "uploading"}
+          disabled={!canCreate || saving || isUploading}
           onClick={async () => {
             setSaving(true);
             try {
-              // 1) Create lecture first (get lectureId)
               const created = await upsertLecture({
                 title: title.trim(),
                 courseId,
@@ -84,20 +82,17 @@ export default function LectureUploadCard({
                 speedPoints: [],
               });
 
-              // 2) Attach video based on mode
               if (mode === "upload" && file) {
                 const durationSec = await getVideoDurationSec(file);
-
-                const ext = safeFileName(file.name);
-                const storagePath = `content/lectures/${created.id}/${Date.now()}_${ext}`;
-
-                const res = await upload({ storagePath, file });
+                const safeName = safeFileName(file.name);
+                const storagePath = `content/lectures/${created.id}/${Date.now()}_${safeName}`;
+                const uploaded = await upload(storagePath, file);
 
                 await upsertLecture({
                   id: created.id,
                   title: created.title,
                   courseId,
-                  videoUrl: res.downloadUrl,
+                  videoUrl: uploaded.downloadUrl,
                   videoSource: "upload",
                   durationSec,
                 });
@@ -113,13 +108,15 @@ export default function LectureUploadCard({
                 });
               }
 
-              // Reset
               setTitle("");
               setFile(null);
               setLink("");
               setMode("upload");
-
               onUploaded();
+            } catch (uploadError) {
+              if ((uploadError as { code?: string })?.code !== "storage/canceled") {
+                throw uploadError;
+              }
             } finally {
               setSaving(false);
             }

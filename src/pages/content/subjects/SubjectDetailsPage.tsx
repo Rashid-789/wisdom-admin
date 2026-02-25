@@ -1,152 +1,279 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, CardContent, DataTable, Input, Pagination, Button, Select } from "../../../app/shared";
+import toast from "react-hot-toast";
+import { Button, Card, CardContent, Input, Select, useDebouncedValue } from "../../../app/shared";
 import { paths } from "../../../app/routes/paths";
-import type { Course, PublishStatus, Subject, CourseCategory } from "../Types/content.types";
-import { getSubject, listCourses } from "../Api/content.api";
-import CourseFormDrawer from "../courses/components/CourseFormDrawer";
+import {
+  getBasicSubject,
+  getBasicSubjectCurriculum,
+  saveBasicSubjectCurriculum,
+  updateBasicSubject,
+} from "../Api/content.api";
+import type { BasicSubject, BasicSubjectCurriculum, PublishStatus, Topic } from "../Types/content.types";
+import CurriculumBuilder from "../courses/components/CurriculumBuilder/CurriculumBuilder";
+import TopicDrawer from "../courses/components/CurriculumBuilder/curriculum/TopicDrawer";
 import StatusBadge from "../courses/components/StatusBadge";
+import {
+  curriculumSignature,
+  getApiErrorMessage,
+  normalizeSubjectCurriculum,
+} from "../utils/curriculum.utils";
+
+type TabKey = "curriculum" | "publishing";
 
 export default function SubjectDetailsPage() {
   const nav = useNavigate();
   const { subjectId = "" } = useParams();
 
-  const [subject, setSubject] = React.useState<Subject | null>(null);
+  const [subject, setSubject] = React.useState<BasicSubject | null>(null);
+  const [curriculum, setCurriculum] = React.useState<BasicSubjectCurriculum>({
+    subjectId,
+    chapters: [],
+  });
 
-  const [category, setCategory] = React.useState<CourseCategory | "all">("all");
-  const [status, setStatus] = React.useState<PublishStatus | "all">("all");
-  const [search, setSearch] = React.useState("");
+  const [loadingSubject, setLoadingSubject] = React.useState(true);
+  const [loadingCurriculum, setLoadingCurriculum] = React.useState(true);
+  const [savingCurriculum, setSavingCurriculum] = React.useState(false);
+  const [savingPublishing, setSavingPublishing] = React.useState(false);
 
-  const [page, setPage] = React.useState(1);
-  const pageSize = 10;
+  const [active, setActive] = React.useState<TabKey>("curriculum");
+  const [status, setStatus] = React.useState<PublishStatus>("draft");
+  const [scheduledFor, setScheduledFor] = React.useState("");
 
-  const [rows, setRows] = React.useState<Course[]>([]);
-  const [total, setTotal] = React.useState(0);
-  const [loading, setLoading] = React.useState(true);
-
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [topicOpen, setTopicOpen] = React.useState(false);
+  const [topicCtx, setTopicCtx] = React.useState<{ chapterId: string; topic: Topic } | null>(null);
+  const lastSavedSignatureRef = React.useRef("");
+  const debouncedCurriculum = useDebouncedValue(curriculum, 800);
 
   React.useEffect(() => {
-    (async () => {
-      setSubject(await getSubject(subjectId));
+    if (!subjectId) return;
+    void (async () => {
+      setLoadingSubject(true);
+      try {
+        const fetched = await getBasicSubject(subjectId);
+        setSubject(fetched);
+        setStatus(fetched.status);
+        setScheduledFor(fetched.scheduledFor ?? "");
+      } finally {
+        setLoadingSubject(false);
+      }
     })();
   }, [subjectId]);
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await listCourses({
-        page,
-        pageSize,
-        search,
-        subjectId,
-        status,
-        category,
-      });
-      setRows(res.rows);
-      setTotal(res.total);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize, search, subjectId, status, category]);
+  React.useEffect(() => {
+    if (!subjectId) return;
+    void (async () => {
+      setLoadingCurriculum(true);
+      try {
+        const fetched = await getBasicSubjectCurriculum(subjectId);
+        setCurriculum(fetched);
+        lastSavedSignatureRef.current = curriculumSignature(fetched.chapters);
+      } finally {
+        setLoadingCurriculum(false);
+      }
+    })();
+  }, [subjectId]);
 
-  React.useEffect(() => { load(); }, [load]);
+  const saveCurriculum = React.useCallback(
+    async (next: BasicSubjectCurriculum, options?: { silent?: boolean }) => {
+      const normalized = normalizeSubjectCurriculum(next);
+      const signature = curriculumSignature(normalized.chapters);
+      if (signature === lastSavedSignatureRef.current) return;
+
+      setSavingCurriculum(true);
+      try {
+        const saved = await saveBasicSubjectCurriculum(subjectId, normalized);
+        setCurriculum(saved);
+        lastSavedSignatureRef.current = curriculumSignature(saved.chapters);
+        if (!options?.silent) {
+          toast.success("Curriculum saved");
+        }
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, "Failed to save curriculum"));
+      } finally {
+        setSavingCurriculum(false);
+      }
+    },
+    [subjectId]
+  );
+
+  React.useEffect(() => {
+    if (loadingCurriculum || !subjectId) return;
+    const normalized = normalizeSubjectCurriculum(debouncedCurriculum);
+    const signature = curriculumSignature(normalized.chapters);
+    if (signature === lastSavedSignatureRef.current) return;
+    void saveCurriculum(normalized, { silent: true });
+  }, [debouncedCurriculum, loadingCurriculum, saveCurriculum, subjectId]);
+
+  const updateTopic = React.useCallback((chapterId: string, updated: Topic) => {
+    setCurriculum((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) =>
+        chapter.id !== chapterId
+          ? chapter
+          : {
+              ...chapter,
+              topics: chapter.topics.map((topic) => (topic.id === updated.id ? updated : topic)),
+            }
+      ),
+    }));
+  }, []);
+
+  if (loadingSubject) {
+    return <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />;
+  }
+
+  if (!subject) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-slate-600">Basic subject not found.</CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
+      <div className="mb-4 space-y-3">
+        <Button
+          variant="outline"
+          onClick={() => nav(paths.admin.content.basicSubjects)}
+          className="w-fit"
+        >
+          {"<- Back to Basic Subjects"}
+        </Button>
+        <p className="text-xs text-slate-500">Content / Basic Subjects / {subject.title}</p>
+      </div>
+
       <Card>
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-slate-500">Subject</p>
-              <h2 className="truncate text-lg font-semibold text-slate-900">
-                {subject?.title ?? "Loading..."}
-              </h2>
-              <p className="text-sm text-slate-500">{subject?.gradeRange ?? ""}</p>
-            </div>
-            <Button onClick={() => setDrawerOpen(true)}>Add Course</Button>
+        <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+          <div className="min-w-0">
+            <p className="text-xs text-slate-500">Basic Subject</p>
+            <h2 className="truncate text-lg font-semibold text-slate-900">{subject.title}</h2>
+            <p className="text-sm text-slate-500">{subject.gradeRange || "No grade range set."}</p>
           </div>
+          <StatusBadge status={subject.status} />
+        </CardContent>
+      </Card>
 
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_220px_220px] lg:items-end">
-            <Input
-              label="Search Courses"
-              placeholder="e.g. Trigonometry"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(["curriculum", "publishing"] as TabKey[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActive(key)}
+            className={
+              active === key
+                ? "rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                : "rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            }
+          >
+            {key === "curriculum" ? "Curriculum" : "Publishing"}
+          </button>
+        ))}
+      </div>
+
+      {active === "curriculum" ? (
+        <Card className="mt-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Curriculum</p>
+                <p className="text-sm text-slate-500">
+                  Build chapters and topics. Each topic stores video, tokens, transcript, and speed points.
+                </p>
+              </div>
+              <Button
+                isLoading={savingCurriculum}
+                disabled={loadingCurriculum}
+                onClick={() => void saveCurriculum(curriculum)}
+              >
+                Save Curriculum
+              </Button>
+            </div>
+
+            <CurriculumBuilder
+              value={{
+                courseId: curriculum.subjectId,
+                chapters: curriculum.chapters,
+                updatedAt: curriculum.updatedAt,
+              }}
+              onChange={(next) =>
+                setCurriculum((prev) => ({
+                  ...prev,
+                  chapters: next.chapters,
+                }))
+              }
+              isLoading={loadingCurriculum}
+              onEditTopic={(chapterId, topic) => {
+                setTopicCtx({ chapterId, topic });
+                setTopicOpen(true);
               }}
             />
+          </CardContent>
+        </Card>
+      ) : null}
 
-            <Select
-              label="Category"
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value as any);
-                setPage(1);
-              }}
-              options={[
-                { label: "All", value: "all" },
-                { label: "Basic", value: "basic" },
-                { label: "Skill", value: "skill" },
-              ]}
-            />
+      {active === "publishing" ? (
+        <Card className="mt-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Publishing</p>
+              <p className="text-sm text-slate-500">Control basic subject visibility for students.</p>
+            </div>
 
             <Select
               label="Status"
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as any);
-                setPage(1);
-              }}
+              onChange={(event) => setStatus(event.target.value as PublishStatus)}
               options={[
-                { label: "All", value: "all" },
                 { label: "Draft", value: "draft" },
                 { label: "Published", value: "published" },
                 { label: "Scheduled", value: "scheduled" },
               ]}
             />
-          </div>
 
-          <DataTable
-            isLoading={loading}
-            rows={rows}
-            rowKey={(r) => r.id}
-            columns={[
-              {
-                key: "course",
-                header: "Course",
-                cell: (r) => (
-                  <div>
-                    <p className="font-medium text-slate-900">{r.title}</p>
-                    <p className="text-xs text-slate-500">{r.category.toUpperCase()}</p>
-                  </div>
-                ),
-              },
-              { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
-              { key: "createdAt", header: "Created", cell: (r) => new Date(r.createdAt).toLocaleDateString() },
-            ]}
-            onRowClick={(r) => nav(paths.admin.content.courseDetail(r.id))}
-            emptyTitle="No courses in this subject"
-            emptyDescription="Add a course and then build curriculum (for Basic) or lectures (for Skill)."
-          />
+            {status === "scheduled" ? (
+              <Input
+                type="datetime-local"
+                label="Schedule Date/Time"
+                value={scheduledFor}
+                onChange={(event) => setScheduledFor(event.target.value)}
+              />
+            ) : null}
 
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
-        </CardContent>
-      </Card>
+            <Button
+              isLoading={savingPublishing}
+              onClick={async () => {
+                setSavingPublishing(true);
+                try {
+                  const updated = await updateBasicSubject(subjectId, {
+                    status,
+                    scheduledFor: status === "scheduled" ? scheduledFor || undefined : undefined,
+                  });
+                  setSubject(updated);
+                  setStatus(updated.status);
+                  setScheduledFor(updated.scheduledFor ?? "");
+                } finally {
+                  setSavingPublishing(false);
+                }
+              }}
+            >
+              Save Publishing
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      {/* Add course inside this subject (subject locked) */}
-      <CourseFormDrawer
-        open={drawerOpen}
-        course={null}
-        subjects={subject ? [subject] : []}
-        defaultSubjectId={subjectId}
-        lockSubject
-        onClose={() => setDrawerOpen(false)}
-        onSaved={async () => {
-          setDrawerOpen(false);
-          await load();
+      <TopicDrawer
+        open={topicOpen}
+        onClose={() => setTopicOpen(false)}
+        subjectId={subjectId}
+        chapterId={topicCtx?.chapterId ?? ""}
+        topic={topicCtx?.topic ?? null}
+        onChangeTopic={(updated) => {
+          if (!topicCtx) return;
+          updateTopic(topicCtx.chapterId, updated);
+          setTopicCtx((prev) => (prev ? { ...prev, topic: updated } : prev));
         }}
       />
     </>

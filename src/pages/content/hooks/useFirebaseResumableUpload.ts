@@ -19,14 +19,14 @@ export function useFirebaseResumableUpload() {
   }, []);
 
   const upload = React.useCallback(
-    async (args: { storagePath: string; file: File }) => {
+    async (storagePath: string, file: File) => {
       setError("");
       setProgress(0);
       setState("uploading");
 
-      const storageRef = ref(storage, args.storagePath);
-      const task = uploadBytesResumable(storageRef, args.file, {
-        contentType: args.file.type || "video/mp4",
+      const storageRef = ref(storage, storagePath);
+      const task = uploadBytesResumable(storageRef, file, {
+        contentType: file.type || "video/mp4",
       });
 
       taskRef.current = task;

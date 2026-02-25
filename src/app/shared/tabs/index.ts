@@ -1,4 +1,4 @@
-export { contentTabs } from "./contentTab";
+export { contentTabs } from "./contentTabs";
 export { paymentTabs } from "./paymentTabs";
 export { bookTabs } from "./bookTabs";
 export { settingsTabs } from "./settingTabs";

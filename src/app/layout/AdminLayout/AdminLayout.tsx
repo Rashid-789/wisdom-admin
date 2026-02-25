@@ -50,8 +50,11 @@ const AdminLayout: React.FC = () => {
 
   const user = React.useMemo(
     () => ({
-      name: session?.user.displayName ?? "Admin",
+      uid: session?.user.uid ?? "admin",
+      name: session?.user.name ?? session?.user.displayName ?? "Admin",
       email: session?.user.email ?? "admin@domain.com",
+      displayName: session?.user.displayName ?? "Admin",
+      role: session?.user.role ?? "admin",
       avatarUrl: session?.user.avatarUrl ?? undefined,
     }),
     [session]

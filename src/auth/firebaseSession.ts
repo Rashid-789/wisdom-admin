@@ -68,6 +68,7 @@ export async function buildAdminSession(user: User): Promise<AuthSession> {
     user: {
       uid: user.uid,
       email,
+      name: user.displayName ?? "Admin",
       displayName: user.displayName ?? "Admin",
       role,
       avatarUrl: user.photoURL ?? null,

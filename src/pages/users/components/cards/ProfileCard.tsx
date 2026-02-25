@@ -8,15 +8,17 @@ function initials(name: string) {
 }
 
 const ProfileCard: React.FC<{ user: UserDetails }> = ({ user }) => {
+  const displayName = user.name ?? "Unknown User";
+
   return (
     <Card>
       <CardContent className="flex items-start gap-3 p-4">
         <div className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-          {initials(user.name)}
+          {initials(displayName)}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-slate-900">{user.name}</p>
+          <p className="truncate text-base font-semibold text-slate-900">{displayName}</p>
           <p className="truncate text-sm text-slate-500">{user.email}</p>
 
           <div className="mt-2 flex flex-wrap gap-2">

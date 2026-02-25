@@ -14,10 +14,10 @@ import UsersListPage from "../../pages/users/UsersListPage";
 
 // Content
 import ContentLayoutPage from "../../pages/content/layout/ContentLayoutPage";
-import SubjectsPage from "../../pages/content/subjects/SubjectsPage";
-import SubjectDetailsPage from "../../pages/content/subjects/SubjectDetailsPage"; 
-import CoursesPage from "../../pages/content/courses/CoursesPage";
-import CourseDetailsPage from "../../pages/content/courses/CourseDetailsPage";
+import BasicSubjectsPage from "../../pages/content/subjects/BasicSubjectsPage";
+import BasicSubjectDetailsPage from "../../pages/content/subjects/BasicSubjectDetailsPage";
+import SkillSubjectsPage from "../../pages/content/skill-subjects/SkillSubjectsPage";
+import SkillSubjectDetailsPage from "../../pages/content/skill-subjects/SkillSubjectDetailsPage";
 
 import LiveClassesLayoutPage from "../../pages/live-classes/LiveClassesLayoutPage";
 import LiveClassesCalendarPage from "../../pages/live-classes/calendar/LiveClassesCalendarPage";
@@ -66,14 +66,13 @@ const AppRoutes: React.FC = () => {
             <Route path="admins" element={<Navigate to="/admin/users" replace />} />
           </Route>
 
-          {/* Content only Subjects + Courses */}
+          {/* Content */}
           <Route path="content" element={<ContentLayoutPage />}>
-            <Route index element={<Navigate to="subjects" replace />} />
-            <Route path="subjects" element={<SubjectsPage />} />
-            <Route path="subjects/:subjectId" element={<SubjectDetailsPage />} /> {/* ✅ NEW */}
-            <Route path="courses" element={<CoursesPage />} />
-            <Route path="courses/:courseId" element={<CourseDetailsPage />} />
-            {/* Removed: lectures + exercises global pages */}
+            <Route index element={<Navigate to="basic-subjects" replace />} />
+            <Route path="basic-subjects" element={<BasicSubjectsPage />} />
+            <Route path="basic-subjects/:subjectId" element={<BasicSubjectDetailsPage />} />
+            <Route path="skill-subjects" element={<SkillSubjectsPage />} />
+            <Route path="skill-subjects/:subjectId" element={<SkillSubjectDetailsPage />} />
           </Route>
 
           <Route path="live-classes" element={<LiveClassesLayoutPage />}>

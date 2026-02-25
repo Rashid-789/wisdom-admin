@@ -1,9 +1,15 @@
-﻿import React from "react";
-import { Card, CardContent, Button } from "../../../../app/shared";
+import React from "react";
+import toast from "react-hot-toast";
+import { Card, CardContent, Button, useDebouncedValue } from "../../../../app/shared";
 import type { Course, CourseCurriculum, Topic } from "../../Types/content.types";
-import { getCurriculum, saveCurriculum } from "../../Api/content.api";
-import CurriculumBuilder from "../components/curriculum/CurriculumBuilder";
-import TopicDrawer from "../components/curriculum/TopicDrawer";
+import { getBasicCurriculum, saveBasicCurriculum } from "../../Api/content.api";
+import CurriculumBuilder from "../components/CurriculumBuilder/CurriculumBuilder";
+import TopicDrawer from "../components/CurriculumBuilder/curriculum/TopicDrawer";
+import {
+  curriculumSignature,
+  getApiErrorMessage,
+  normalizeCourseCurriculum,
+} from "../../utils/curriculum.utils";
 
 export default function CurriculumTab({ course }: { course: Course }) {
   const [value, setValue] = React.useState<CourseCurriculum>({ courseId: course.id, chapters: [] });
@@ -12,17 +18,52 @@ export default function CurriculumTab({ course }: { course: Course }) {
 
   const [topicOpen, setTopicOpen] = React.useState(false);
   const [topicCtx, setTopicCtx] = React.useState<{ chapterId: string; topic: Topic } | null>(null);
+  const lastSavedSignatureRef = React.useRef("");
+  const debouncedValue = useDebouncedValue(value, 800);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      setValue(await getCurriculum(course.id));
+      const fetched = await getBasicCurriculum(course.subjectId, course.id);
+      setValue(fetched);
+      lastSavedSignatureRef.current = curriculumSignature(fetched.chapters);
     } finally {
       setLoading(false);
     }
-  }, [course.id]);
+  }, [course.id, course.subjectId]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  const saveCurriculum = React.useCallback(
+    async (next: CourseCurriculum, options?: { silent?: boolean }) => {
+      const normalized = normalizeCourseCurriculum(next);
+      const signature = curriculumSignature(normalized.chapters);
+      if (signature === lastSavedSignatureRef.current) return;
+
+      setSaving(true);
+      try {
+        const saved = await saveBasicCurriculum(course.subjectId, course.id, normalized);
+        setValue(saved);
+        lastSavedSignatureRef.current = curriculumSignature(saved.chapters);
+        if (!options?.silent) {
+          toast.success("Curriculum saved");
+        }
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, "Failed to save curriculum"));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [course.id, course.subjectId]
+  );
+
+  React.useEffect(() => {
+    if (loading) return;
+    const normalized = normalizeCourseCurriculum(debouncedValue);
+    const signature = curriculumSignature(normalized.chapters);
+    if (signature === lastSavedSignatureRef.current) return;
+    void saveCurriculum(normalized, { silent: true });
+  }, [debouncedValue, loading, saveCurriculum]);
 
   const updateTopic = (chapterId: string, updated: Topic) => {
     setValue((prev) => ({
@@ -43,21 +84,14 @@ export default function CurriculumTab({ course }: { course: Course }) {
             <div>
               <p className="text-sm font-semibold text-slate-900">Curriculum</p>
               <p className="text-sm text-slate-500">
-                Build chapters → topics. Each topic holds the lecture video (+ tokens) and optional exercise.
+                Build chapters ? topics. Each topic holds the lecture video (+ tokens) and optional exercise.
               </p>
             </div>
 
             <Button
               isLoading={saving}
               disabled={loading}
-              onClick={async () => {
-                setSaving(true);
-                try {
-                  await saveCurriculum(course.id, value);
-                } finally {
-                  setSaving(false);
-                }
-              }}
+              onClick={() => void saveCurriculum(value)}
             >
               Save Curriculum
             </Button>
@@ -78,7 +112,7 @@ export default function CurriculumTab({ course }: { course: Course }) {
       <TopicDrawer
         open={topicOpen}
         onClose={() => setTopicOpen(false)}
-        courseId={course.id}
+        subjectId={course.subjectId}
         chapterId={topicCtx?.chapterId ?? ""}
         topic={topicCtx?.topic ?? null}
         onChangeTopic={(updated) => {

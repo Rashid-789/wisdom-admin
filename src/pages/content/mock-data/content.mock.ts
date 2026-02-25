@@ -10,10 +10,10 @@ const now = Date.now();
 const iso = (minutesAgo: number) => new Date(now - minutesAgo * 60 * 1000).toISOString();
 
 export const SUBJECTS: Subject[] = [
-  { id: "sub_math", title: "Applied Mathematics", gradeRange: "Grade 8-9", createdAt: iso(60 * 24 * 8) },
-  { id: "sub_phy", title: "Physics", gradeRange: "Grade 8-9", createdAt: iso(60 * 24 * 6) },
-  { id: "sub_cs", title: "Computer Science", gradeRange: "Grade 9-10", createdAt: iso(60 * 24 * 4) },
-  { id: "sub_eng", title: "English Literature", gradeRange: "Grade 8-10", createdAt: iso(60 * 24 * 2) },
+  { id: "sub_math", title: "Applied Mathematics", gradeRange: "Grade 8-9", status: "published", createdAt: iso(60 * 24 * 8) },
+  { id: "sub_phy", title: "Physics", gradeRange: "Grade 8-9", status: "draft", createdAt: iso(60 * 24 * 6) },
+  { id: "sub_cs", title: "Computer Science", gradeRange: "Grade 9-10", status: "scheduled", createdAt: iso(60 * 24 * 4) },
+  { id: "sub_eng", title: "English Literature", gradeRange: "Grade 8-10", status: "draft", createdAt: iso(60 * 24 * 2) },
 ];
 
 export const COURSES: Course[] = [

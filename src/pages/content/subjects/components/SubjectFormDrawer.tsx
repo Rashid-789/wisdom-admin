@@ -29,8 +29,8 @@ export default function SubjectFormDrawer({ open, subject, onClose, onSaved }: P
     <Drawer
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Subject" : "Add Subject"}
-      description="Subjects group courses (e.g., Mathematics, Physics)"
+      title={isEdit ? "Edit Basic Subject" : "Add Basic Subject"}
+      description="Basic subjects contain chapters and topics directly."
     >
       <Card>
         <CardContent className="p-4 space-y-3">
