@@ -1,53 +1,39 @@
-import React from "react";
+﻿import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import AdminLayout from "../layout/AdminLayout/AdminLayout";
 import RequireAdmin from "../../auth/RequireAdmin";
 import NotFoundPage from "../../pages/Dashboard/NotFoundPage";
-
-import LoginPage from "../../pages/auth/LoginPage";
-import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
-
 import DashboardPage from "../../pages/Dashboard/DashboardPage";
-import UsersLayoutPage from "../../pages/users/UsersLayoutPage";
-import UsersListPage from "../../pages/users/UsersListPage";
-
-// Content
-import ContentLayoutPage from "../../pages/content/layout/ContentLayoutPage";
-import BasicSubjectsPage from "../../pages/content/subjects/BasicSubjectsPage";
-import BasicSubjectDetailsPage from "../../pages/content/subjects/BasicSubjectDetailsPage";
-import SkillSubjectsPage from "../../pages/content/skill-subjects/SkillSubjectsPage";
-import SkillSubjectDetailsPage from "../../pages/content/skill-subjects/SkillSubjectDetailsPage";
-
-import LiveClassesLayoutPage from "../../pages/live-classes/LiveClassesLayoutPage";
-import LiveClassesCalendarPage from "../../pages/live-classes/calendar/LiveClassesCalendarPage";
-import LiveClassesPage from "../../pages/live-classes/sessions/LiveClassesPage";
-import LiveClassDetailsPage from "../../pages/live-classes/details/LiveClassDetailsPage";
-
+import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
+import LoginPage from "../../pages/auth/LoginPage";
 import BooksLayoutPage from "../../pages/books/BooksLayoutPage";
+import BookDetailsPage from "../../pages/books/details/BookDetailsPage";
 import BooksPage from "../../pages/books/list/BooksPage";
 import BookOrdersPage from "../../pages/books/orders/BookOrdersPage";
-import BookDetailsPage from "../../pages/books/details/BookDetailsPage";
-
-import PaymentsLayoutPage from "../../pages/payments/Payments layout/PaymentsLayoutPage";
-import PaymentsTransactionsPage from "../../pages/payments/Transactions page/TransactionsPage";
-import PaymentsPlansPage from "../../pages/payments/plans/PaymentsPlansPage";
-import PaymentsRefundsPage from "../../pages/payments/refunds/PaymentsRefundsPage";
-
+import ContentLayoutPage from "../../pages/content/layout/ContentLayoutPage";
+import BasicCoursesPage from "../../pages/content/courses/BasicCoursesPage";
+import SkillCoursesPage from "../../pages/content/courses/SkillCoursesPage";
+import CourseChaptersPage from "../../pages/content/courses/chapters/CourseChaptersPage";
+import ChapterTopicsPage from "../../pages/content/courses/topics/ChapterTopicsPage";
+import LiveClassDetailsPage from "../../pages/live-classes/details/LiveClassDetailsPage";
+import LiveClassesCalendarPage from "../../pages/live-classes/calendar/LiveClassesCalendarPage";
+import LiveClassesLayoutPage from "../../pages/live-classes/LiveClassesLayoutPage";
+import LiveClassesPage from "../../pages/live-classes/sessions/LiveClassesPage";
 import SettingsLayoutPage, { SettingsIndexRedirect } from "../../pages/settings/SettingsLayoutPage";
 import SettingsAccountPage from "../../pages/settings/account/SettingsAccountPage";
 import SettingsNotificationsPage from "../../pages/settings/notifications/SettingsNotificationsPage";
+import UsersLayoutPage from "../../pages/users/UsersLayoutPage";
+import UsersListPage from "../../pages/users/UsersListPage";
+import AdminLayout from "../layout/AdminLayout/AdminLayout";
 
 const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
         <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-        {/* Admin (protected) */}
         <Route
           path="/admin"
           element={
@@ -66,13 +52,13 @@ const AppRoutes: React.FC = () => {
             <Route path="admins" element={<Navigate to="/admin/users" replace />} />
           </Route>
 
-          {/* Content */}
           <Route path="content" element={<ContentLayoutPage />}>
-            <Route index element={<Navigate to="basic-subjects" replace />} />
-            <Route path="basic-subjects" element={<BasicSubjectsPage />} />
-            <Route path="basic-subjects/:subjectId" element={<BasicSubjectDetailsPage />} />
-            <Route path="skill-subjects" element={<SkillSubjectsPage />} />
-            <Route path="skill-subjects/:subjectId" element={<SkillSubjectDetailsPage />} />
+            <Route index element={<Navigate to="basic-courses" replace />} />
+            <Route path="basic-courses" element={<BasicCoursesPage />} />
+            <Route path="skill-courses" element={<SkillCoursesPage />} />
+            <Route path="courses/:courseId" element={<CourseChaptersPage />} />
+            <Route path="courses/:courseId/chapters/:chapterId" element={<ChapterTopicsPage />} />
+            <Route path="courses" element={<Navigate to="/admin/content/basic-courses" replace />} />
           </Route>
 
           <Route path="live-classes" element={<LiveClassesLayoutPage />}>
@@ -85,12 +71,6 @@ const AppRoutes: React.FC = () => {
             <Route index element={<BooksPage />} />
             <Route path="orders" element={<BookOrdersPage />} />
             <Route path=":id" element={<BookDetailsPage />} />
-          </Route>
-
-          <Route path="payments" element={<PaymentsLayoutPage />}>
-            <Route path="transactions" element={<PaymentsTransactionsPage />} />
-            <Route path="plans" element={<PaymentsPlansPage />} />
-            <Route path="refunds" element={<PaymentsRefundsPage />} />
           </Route>
 
           <Route path="settings" element={<SettingsLayoutPage />}>

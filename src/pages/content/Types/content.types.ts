@@ -15,14 +15,23 @@ export type TopicVideo = {
   storagePath?: string;
 };
 
+export type ImageAsset = {
+  source: VideoSource;
+  url: string;
+  storagePath?: string;
+};
+
 export type Topic = {
   id: string;
   title: string;
   order: number;
   rewardTokens?: number;
   video?: TopicVideo;
+  thumbnail?: ImageAsset;
   transcript?: string;
   speedPoints?: SpeedPoint[];
+  createdAt?: string;
+  updatedAt?: string;
 
   // Legacy compatibility.
   lectureId?: string;
@@ -34,6 +43,8 @@ export type Chapter = {
   title: string;
   order: number;
   topics: Topic[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type CourseCurriculum = {
@@ -54,17 +65,28 @@ export type BasicSubject = {
   gradeRange?: string;
   status: PublishStatus;
   scheduledFor?: string;
+  coverImage?: string;
+  coverImageSource?: VideoSource;
   createdAt: string;
+  updatedAt?: string;
+  category?: CourseCategory;
 };
 
 export type BasicCourse = {
   id: string;
-  subjectId: string;
   title: string;
   description?: string;
   status: PublishStatus;
   scheduledFor?: string;
+  coverImage?: string;
+  coverImageSource?: VideoSource;
+  gradeRange?: string;
+  lecturerName?: string;
+  // Legacy compatibility fields (no longer primary in new model).
+  subjectId?: string;
+  subjectTitle?: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type SkillSubject = {
@@ -72,7 +94,10 @@ export type SkillSubject = {
   title: string;
   lecturerName?: string;
   coverImage?: string;
+  coverImageSource?: VideoSource;
   createdAt: string;
+  updatedAt?: string;
+  category?: CourseCategory;
 };
 
 export type SkillTopic = {
@@ -81,6 +106,7 @@ export type SkillTopic = {
   title: string;
   rewardTokens?: number;
   video: TopicVideo;
+  thumbnail?: ImageAsset;
   transcript?: string;
   speedPoints?: SpeedPoint[];
   createdAt: string;
@@ -100,6 +126,9 @@ export type ListResponse<T> = {
 // Legacy aliases for still-existing files. New code should use Basic*/Skill* types.
 export type Subject = BasicSubject;
 export type Course = BasicCourse & { category: CourseCategory };
+export type SubjectOption = Pick<BasicSubject, "id" | "title"> & {
+  category?: CourseCategory;
+};
 
 export type Lecture = {
   id: string;

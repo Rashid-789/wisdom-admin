@@ -1,135 +1,65 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Button, Card, CardContent, Input, Select, useDebouncedValue } from "../../../app/shared";
+import { Button, Card, CardContent, DataTable, Input, Pagination } from "../../../app/shared";
 import { paths } from "../../../app/routes/paths";
-import {
-  getBasicSubject,
-  getBasicSubjectCurriculum,
-  saveBasicSubjectCurriculum,
-  updateBasicSubject,
-} from "../Api/content.api";
-import type { BasicSubject, BasicSubjectCurriculum, PublishStatus, Topic } from "../Types/content.types";
-import CurriculumBuilder from "../courses/components/CurriculumBuilder/CurriculumBuilder";
-import TopicDrawer from "../courses/components/CurriculumBuilder/curriculum/TopicDrawer";
+import { deleteCourse, getBasicSubject, listCourses } from "../Api/content.api";
+import type { BasicSubject, Course, SubjectOption } from "../Types/content.types";
+import CourseFormDrawer from "../courses/components/CourseFormDrawer";
 import StatusBadge from "../courses/components/StatusBadge";
-import {
-  curriculumSignature,
-  getApiErrorMessage,
-  normalizeSubjectCurriculum,
-} from "../utils/curriculum.utils";
-
-type TabKey = "curriculum" | "publishing";
 
 export default function SubjectDetailsPage() {
   const nav = useNavigate();
   const { subjectId = "" } = useParams();
 
   const [subject, setSubject] = React.useState<BasicSubject | null>(null);
-  const [curriculum, setCurriculum] = React.useState<BasicSubjectCurriculum>({
-    subjectId,
-    chapters: [],
-  });
 
-  const [loadingSubject, setLoadingSubject] = React.useState(true);
-  const [loadingCurriculum, setLoadingCurriculum] = React.useState(true);
-  const [savingCurriculum, setSavingCurriculum] = React.useState(false);
-  const [savingPublishing, setSavingPublishing] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const pageSize = 10;
 
-  const [active, setActive] = React.useState<TabKey>("curriculum");
-  const [status, setStatus] = React.useState<PublishStatus>("draft");
-  const [scheduledFor, setScheduledFor] = React.useState("");
+  const [rows, setRows] = React.useState<Course[]>([]);
+  const [total, setTotal] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
 
-  const [topicOpen, setTopicOpen] = React.useState(false);
-  const [topicCtx, setTopicCtx] = React.useState<{ chapterId: string; topic: Topic } | null>(null);
-  const lastSavedSignatureRef = React.useRef("");
-  const debouncedCurriculum = useDebouncedValue(curriculum, 800);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Course | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!subjectId) return;
     void (async () => {
-      setLoadingSubject(true);
-      try {
-        const fetched = await getBasicSubject(subjectId);
-        setSubject(fetched);
-        setStatus(fetched.status);
-        setScheduledFor(fetched.scheduledFor ?? "");
-      } finally {
-        setLoadingSubject(false);
-      }
+      const fetched = await getBasicSubject(subjectId);
+      setSubject(fetched);
     })();
   }, [subjectId]);
 
-  React.useEffect(() => {
+  const subjectOptions: SubjectOption[] = React.useMemo(() => {
+    return [{ id: subjectId, title: subject?.title ?? "Basic Subject", category: "basic" }];
+  }, [subjectId, subject]);
+
+  const load = React.useCallback(async () => {
     if (!subjectId) return;
-    void (async () => {
-      setLoadingCurriculum(true);
-      try {
-        const fetched = await getBasicSubjectCurriculum(subjectId);
-        setCurriculum(fetched);
-        lastSavedSignatureRef.current = curriculumSignature(fetched.chapters);
-      } finally {
-        setLoadingCurriculum(false);
-      }
-    })();
-  }, [subjectId]);
-
-  const saveCurriculum = React.useCallback(
-    async (next: BasicSubjectCurriculum, options?: { silent?: boolean }) => {
-      const normalized = normalizeSubjectCurriculum(next);
-      const signature = curriculumSignature(normalized.chapters);
-      if (signature === lastSavedSignatureRef.current) return;
-
-      setSavingCurriculum(true);
-      try {
-        const saved = await saveBasicSubjectCurriculum(subjectId, normalized);
-        setCurriculum(saved);
-        lastSavedSignatureRef.current = curriculumSignature(saved.chapters);
-        if (!options?.silent) {
-          toast.success("Curriculum saved");
-        }
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, "Failed to save curriculum"));
-      } finally {
-        setSavingCurriculum(false);
-      }
-    },
-    [subjectId]
-  );
+    setLoading(true);
+    try {
+      const res = await listCourses({
+        page,
+        pageSize,
+        search,
+        subjectId,
+        category: "basic",
+        status: "all",
+      });
+      setRows(res.rows);
+      setTotal(res.total);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, search, subjectId]);
 
   React.useEffect(() => {
-    if (loadingCurriculum || !subjectId) return;
-    const normalized = normalizeSubjectCurriculum(debouncedCurriculum);
-    const signature = curriculumSignature(normalized.chapters);
-    if (signature === lastSavedSignatureRef.current) return;
-    void saveCurriculum(normalized, { silent: true });
-  }, [debouncedCurriculum, loadingCurriculum, saveCurriculum, subjectId]);
-
-  const updateTopic = React.useCallback((chapterId: string, updated: Topic) => {
-    setCurriculum((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((chapter) =>
-        chapter.id !== chapterId
-          ? chapter
-          : {
-              ...chapter,
-              topics: chapter.topics.map((topic) => (topic.id === updated.id ? updated : topic)),
-            }
-      ),
-    }));
-  }, []);
-
-  if (loadingSubject) {
-    return <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />;
-  }
-
-  if (!subject) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-sm text-slate-600">Basic subject not found.</CardContent>
-      </Card>
-    );
-  }
+    void load();
+  }, [load]);
 
   return (
     <>
@@ -141,139 +71,140 @@ export default function SubjectDetailsPage() {
         >
           {"<- Back to Basic Subjects"}
         </Button>
-        <p className="text-xs text-slate-500">Content / Basic Subjects / {subject.title}</p>
+        <p className="text-xs text-slate-500">Content / Basic Subjects / {subject?.title ?? "Loading..."}</p>
       </div>
 
       <Card>
-        <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-          <div className="min-w-0">
-            <p className="text-xs text-slate-500">Basic Subject</p>
-            <h2 className="truncate text-lg font-semibold text-slate-900">{subject.title}</h2>
-            <p className="text-sm text-slate-500">{subject.gradeRange || "No grade range set."}</p>
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">Basic Subject</p>
+              <h2 className="truncate text-lg font-semibold text-slate-900">
+                {subject?.title ?? "Loading..."}
+              </h2>
+              <p className="text-sm text-slate-500">{subject?.gradeRange ?? "No grade range"}</p>
+            </div>
+
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setDrawerOpen(true);
+              }}
+            >
+              Add Course
+            </Button>
           </div>
-          <StatusBadge status={subject.status} />
+
+          <Input
+            label="Search Courses"
+            placeholder="e.g. Algebra Foundations"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+
+          <DataTable
+            isLoading={loading}
+            rows={rows}
+            rowKey={(row) => row.id}
+            columns={[
+              {
+                key: "coverImage",
+                header: "Thumbnail",
+                cell: (row) =>
+                  row.coverImage ? (
+                    <img
+                      src={row.coverImage}
+                      alt={row.title}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-[10px] uppercase text-slate-500">
+                      None
+                    </div>
+                  ),
+              },
+              {
+                key: "title",
+                header: "Course",
+                cell: (row) => <p className="font-medium text-slate-900">{row.title}</p>,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (row) => <StatusBadge status={row.status} />,
+              },
+              {
+                key: "createdAt",
+                header: "Created",
+                cell: (row) => new Date(row.createdAt).toLocaleDateString(),
+              },
+              {
+                key: "actions",
+                header: "",
+                cell: (row) => (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditing(row);
+                        setDrawerOpen(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={deletingId === row.id}
+                      onClick={async (event) => {
+                        event.stopPropagation();
+                        if (!window.confirm(`Delete course \"${row.title}\"? This removes all chapters and topics.`)) {
+                          return;
+                        }
+
+                        setDeletingId(row.id);
+                        try {
+                          await deleteCourse("basic", row.subjectId ?? row.id, row.id);
+                          toast.success("Course deleted");
+                          await load();
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : "Failed to delete course");
+                        } finally {
+                          setDeletingId(null);
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            onRowClick={(row) => nav(paths.admin.content.courseDetail(row.id))}
+            emptyTitle="No courses in this subject"
+            emptyDescription="Create a course and start building curriculum."
+          />
+
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(["curriculum", "publishing"] as TabKey[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActive(key)}
-            className={
-              active === key
-                ? "rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-                : "rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            }
-          >
-            {key === "curriculum" ? "Curriculum" : "Publishing"}
-          </button>
-        ))}
-      </div>
-
-      {active === "curriculum" ? (
-        <Card className="mt-4">
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Curriculum</p>
-                <p className="text-sm text-slate-500">
-                  Build chapters and topics. Each topic stores video, tokens, transcript, and speed points.
-                </p>
-              </div>
-              <Button
-                isLoading={savingCurriculum}
-                disabled={loadingCurriculum}
-                onClick={() => void saveCurriculum(curriculum)}
-              >
-                Save Curriculum
-              </Button>
-            </div>
-
-            <CurriculumBuilder
-              value={{
-                courseId: curriculum.subjectId,
-                chapters: curriculum.chapters,
-                updatedAt: curriculum.updatedAt,
-              }}
-              onChange={(next) =>
-                setCurriculum((prev) => ({
-                  ...prev,
-                  chapters: next.chapters,
-                }))
-              }
-              isLoading={loadingCurriculum}
-              onEditTopic={(chapterId, topic) => {
-                setTopicCtx({ chapterId, topic });
-                setTopicOpen(true);
-              }}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {active === "publishing" ? (
-        <Card className="mt-4">
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Publishing</p>
-              <p className="text-sm text-slate-500">Control basic subject visibility for students.</p>
-            </div>
-
-            <Select
-              label="Status"
-              value={status}
-              onChange={(event) => setStatus(event.target.value as PublishStatus)}
-              options={[
-                { label: "Draft", value: "draft" },
-                { label: "Published", value: "published" },
-                { label: "Scheduled", value: "scheduled" },
-              ]}
-            />
-
-            {status === "scheduled" ? (
-              <Input
-                type="datetime-local"
-                label="Schedule Date/Time"
-                value={scheduledFor}
-                onChange={(event) => setScheduledFor(event.target.value)}
-              />
-            ) : null}
-
-            <Button
-              isLoading={savingPublishing}
-              onClick={async () => {
-                setSavingPublishing(true);
-                try {
-                  const updated = await updateBasicSubject(subjectId, {
-                    status,
-                    scheduledFor: status === "scheduled" ? scheduledFor || undefined : undefined,
-                  });
-                  setSubject(updated);
-                  setStatus(updated.status);
-                  setScheduledFor(updated.scheduledFor ?? "");
-                } finally {
-                  setSavingPublishing(false);
-                }
-              }}
-            >
-              Save Publishing
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <TopicDrawer
-        open={topicOpen}
-        onClose={() => setTopicOpen(false)}
-        subjectId={subjectId}
-        chapterId={topicCtx?.chapterId ?? ""}
-        topic={topicCtx?.topic ?? null}
-        onChangeTopic={(updated) => {
-          if (!topicCtx) return;
-          updateTopic(topicCtx.chapterId, updated);
-          setTopicCtx((prev) => (prev ? { ...prev, topic: updated } : prev));
+      <CourseFormDrawer
+        open={drawerOpen}
+        course={editing}
+        subjects={subjectOptions}
+        defaultSubjectId={subjectId}
+        lockSubject
+        defaultCategory="basic"
+        lockCategory
+        onClose={() => setDrawerOpen(false)}
+        onSaved={async () => {
+          await load();
+          setDrawerOpen(false);
+          setEditing(null);
         }}
       />
     </>

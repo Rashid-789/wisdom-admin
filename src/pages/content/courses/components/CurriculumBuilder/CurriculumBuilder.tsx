@@ -10,6 +10,13 @@ type Props = {
   isLoading?: boolean;
 };
 
+function createLocalId(prefix: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  }
+  return `${prefix}_${Math.random().toString(16).slice(2)}`;
+}
+
 export default function CurriculumBuilder({ value, onChange, onEditTopic, isLoading }: Props) {
   const [chapterDrawer, setChapterDrawer] = React.useState(false);
   const [newChapterTitle, setNewChapterTitle] = React.useState("");
@@ -19,13 +26,18 @@ export default function CurriculumBuilder({ value, onChange, onEditTopic, isLoad
     if (!title) return;
 
     const nextCh: Chapter = {
-      id: `ch_${Math.random().toString(16).slice(2)}`,
+      id: createLocalId("ch"),
       title,
       order: value.chapters.length + 1,
       topics: [],
     };
 
-    onChange({ ...value, chapters: [...value.chapters, nextCh] });
+    const next = { ...value, chapters: [...value.chapters, nextCh] };
+    console.debug("[curriculum-ui] add chapter", {
+      chapterId: nextCh.id,
+      chaptersCount: next.chapters.length,
+    });
+    onChange(next);
     setNewChapterTitle("");
     setChapterDrawer(false);
   };

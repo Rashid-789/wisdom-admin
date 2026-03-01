@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, DataTable, Input, Pagination, Button } from "../../../app/shared";
 import { paths } from "../../../app/routes/paths";
 import type { Subject } from "../Types/content.types";
-import { listSubjects } from "../Api/content.api";
+import { listBasicSubjects } from "../Api/content.api";
 import SubjectFormDrawer from "./components/SubjectFormDrawer";
 
 export default function SubjectsPage() {
@@ -23,7 +23,7 @@ export default function SubjectsPage() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listSubjects({ page, pageSize, search });
+      const res = await listBasicSubjects({ page, pageSize, search });
       setRows(res.rows);
       setTotal(res.total);
     } finally {
@@ -31,12 +31,14 @@ export default function SubjectsPage() {
     }
   }, [page, pageSize, search]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <>
       <Card>
-        <CardContent className="p-4 sm:p-6 space-y-4">
+        <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <Input
               label="Search Basic Subjects"
@@ -64,6 +66,22 @@ export default function SubjectsPage() {
             rows={rows}
             rowKey={(r) => r.id}
             columns={[
+              {
+                key: "coverImage",
+                header: "Thumbnail",
+                cell: (r) =>
+                  r.coverImage ? (
+                    <img
+                      src={r.coverImage}
+                      alt={r.title}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-[10px] uppercase text-slate-500">
+                      None
+                    </div>
+                  ),
+              },
               { key: "title", header: "Title", accessor: "title" },
               { key: "gradeRange", header: "Grade", cell: (r) => r.gradeRange ?? "-" },
               { key: "status", header: "Status", cell: (r) => r.status },

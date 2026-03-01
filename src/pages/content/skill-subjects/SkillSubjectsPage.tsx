@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, CardContent, DataTable, Input, Pagination } from "../../../app/shared";
 import { paths } from "../../../app/routes/paths";
@@ -55,6 +55,22 @@ export default function SkillSubjectsPage() {
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
+              {
+                key: "coverImage",
+                header: "Thumbnail",
+                cell: (row) =>
+                  row.coverImage ? (
+                    <img
+                      src={row.coverImage}
+                      alt={row.title}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-[10px] uppercase text-slate-500">
+                      None
+                    </div>
+                  ),
+              },
               { key: "title", header: "Title", accessor: "title" },
               {
                 key: "lecturerName",
@@ -69,7 +85,7 @@ export default function SkillSubjectsPage() {
             ]}
             onRowClick={(row) => nav(paths.admin.content.skillSubjectDetail(row.id))}
             emptyTitle="No skill subjects found"
-            emptyDescription="Add a skill subject to start creating direct video topics."
+            emptyDescription="Add a skill subject to start creating courses and curriculum."
           />
 
           <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />

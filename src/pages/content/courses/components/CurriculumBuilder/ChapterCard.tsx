@@ -10,6 +10,13 @@ type Props = {
   onEditTopic: (topic: Topic) => void;
 };
 
+function createLocalId(prefix: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  }
+  return `${prefix}_${Math.random().toString(16).slice(2)}`;
+}
+
 export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter, onEditTopic }: Props) {
   const [topicDrawer, setTopicDrawer] = React.useState(false);
   const [topicTitle, setTopicTitle] = React.useState("");
@@ -19,14 +26,20 @@ export default function ChapterCard({ chapter, onChangeChapter, onDeleteChapter,
     if (!t) return;
 
     const next: Topic = {
-      id: `t_${Math.random().toString(16).slice(2)}`,
+      id: createLocalId("t"),
       title: t,
       order: chapter.topics.length + 1,
       rewardTokens: 0,
       speedPoints: [],
     };
 
-    onChangeChapter({ ...chapter, topics: [...chapter.topics, next] });
+    const updatedChapter = { ...chapter, topics: [...chapter.topics, next] };
+    console.debug("[curriculum-ui] add topic", {
+      chapterId: chapter.id,
+      topicId: next.id,
+      topicsCount: updatedChapter.topics.length,
+    });
+    onChangeChapter(updatedChapter);
     setTopicTitle("");
     setTopicDrawer(false);
   };

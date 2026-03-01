@@ -1,4 +1,4 @@
-export const paths = {
+﻿export const paths = {
   admin: {
     root: "/admin",
     dashboard: "/admin/dashboard",
@@ -13,10 +13,18 @@ export const paths = {
 
     content: {
       root: "/admin/content",
+      basicCourses: "/admin/content/basic-courses",
+      skillCourses: "/admin/content/skill-courses",
+      courseDetail: (courseId: string) => `/admin/content/courses/${courseId}`,
+      chapterDetail: (courseId: string, chapterId: string) =>
+        `/admin/content/courses/${courseId}/chapters/${chapterId}`,
+
+      // Legacy routes kept for compatibility with older files.
       basicSubjects: "/admin/content/basic-subjects",
       basicSubjectDetail: (subjectId: string) => `/admin/content/basic-subjects/${subjectId}`,
       skillSubjects: "/admin/content/skill-subjects",
       skillSubjectDetail: (subjectId: string) => `/admin/content/skill-subjects/${subjectId}`,
+      courses: "/admin/content/courses",
     },
 
     liveClasses: {
