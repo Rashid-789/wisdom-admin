@@ -41,7 +41,7 @@ const rules: MetaRule[] = [
     startsWith: "/admin/books",
     meta: {
       title: "Books",
-      description: "Manage book library, uploads, and access control",
+      description: "Manage book subjects, uploads, and PDF library",
     },
   },
   {

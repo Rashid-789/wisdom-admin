@@ -1,99 +1,78 @@
-﻿
-export type Currency = "PKR" | "USD" | "GBP";
+﻿export type Currency = "PKR" | "USD" | "GBP";
 
-export type BookFileType = "pdf" | "epub";
+export type PublishStatus = "draft" | "published";
 
-export type BookStatus = "draft" | "published";
-
-export type Book = {
+export type BookSubject = {
   id: string;
   title: string;
 
-  author?: string;
-  publisher?: string;
-
+  gradeLabel?: string; // e.g. "Grade 8th–9th"
   description?: string;
 
-  price: number;
-  currency: Currency;
+  thumbnailUrl?: string; // subject thumbnail
 
-  fileType: BookFileType;
-  fileUrl?: string;   // storage url
-  coverUrl?: string;  // storage url
-
-  // Linking (optional)
-  subjectId?: string;
-  subjectTitle?: string;
-
-  courseId?: string;
-  courseTitle?: string;
-
-  status: BookStatus;
+  status: PublishStatus;
   createdAt: string; // ISO
   updatedAt: string; // ISO
 };
 
-export type BookUpsertInput = {
+export type SubBook = {
+  id: string;
+
+  subjectId: string;
+  subjectTitle: string;
+
   title: string;
   author?: string;
   publisher?: string;
   description?: string;
 
-  price: number;
-  currency: Currency;
+  // pricing like app: "150k OR Rs.1500"
+  tokenPrice?: number; // e.g. 150000
+  moneyPrice?: number; // e.g. 1500
+  currency: Currency; // mostly PKR
 
-  fileType: BookFileType;
+  // uploads
+  pdfUrl?: string;     // storage url
+  coverUrl?: string;   // storage url
 
-  subjectId?: string;
-  subjectTitle?: string;
-
-  courseId?: string;
-  courseTitle?: string;
-
-  status: BookStatus;
-
-  // Uploads (optional)
-  file?: File | null;
-  cover?: File | null;
-};
-
-export type BookOrderStatus = "paid" | "refunded" | "failed";
-
-export type BookOrder = {
-  id: string;
-  bookId: string;
-  bookTitle: string;
-
-  userId: string;
-  userName: string;
-  userEmail?: string;
-
-  amount: number;
-  currency: Currency;
-
-  status: BookOrderStatus;
+  status: PublishStatus;
   createdAt: string; // ISO
+  updatedAt: string; // ISO
 };
 
-export type BookAccessSource = "order" | "manual";
+export type SubjectUpsertInput = {
+  title: string;
+  gradeLabel?: string;
+  description?: string;
+  status: PublishStatus;
 
-export type BookAccess = {
-  id: string;
-  bookId: string;
+  // upload (optional)
+  thumbnail?: File | null;
+};
 
-  userId: string;
-  userName: string;
-  userEmail?: string;
+export type SubBookUpsertInput = {
+  title: string;
+  author?: string;
+  publisher?: string;
+  description?: string;
 
-  source: BookAccessSource;
-  grantedAt: string; // ISO
+  tokenPrice?: number;
+  moneyPrice?: number;
+  currency: Currency;
+
+  status: PublishStatus;
+
+  // uploads (optional)
+  pdf?: File | null;     // MUST be PDF
+  cover?: File | null;
 };
 
 export type ListQuery = {
   page: number;
   pageSize: number;
   search?: string;
-  status?: "all" | BookStatus;
+  status?: "all" | PublishStatus;
 };
 
 export type ListResponse<T> = {

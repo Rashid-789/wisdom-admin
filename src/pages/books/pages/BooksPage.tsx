@@ -1,45 +1,35 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  Input,
-  Select,
-  Button,
-  Pagination,
-} from "../../../app/shared";
+import { Card, CardContent, Input, Select, Button, Pagination } from "../../../app/shared";
 import { paths } from "../../../app/routes/paths";
 
-import type { Book, BookStatus } from "../Types/books.types";
-import { listBooks } from "../Api/books.api";
+import type { BookSubject, PublishStatus } from "../Types/books.types";
+import { listBookSubjects } from "../Api/books.api";
 
-import BooksTable from "./components/BooksTable";
-import BookFormDrawer from "./components/BookFormDrawer";
-import { SectionTabs, bookTabs } from "../../../app/shared";
-
-;
+import SubjectsTable from "../list/components/SubjectsTable";
+import SubjectFormDrawer from "./components/SubjectFormDrawer";
 
 export default function BooksPage() {
   const nav = useNavigate();
 
   const [search, setSearch] = React.useState("");
-  const [status, setStatus] = React.useState<BookStatus | "all">("all");
+  const [status, setStatus] = React.useState<PublishStatus | "all">("all");
 
   const [page, setPage] = React.useState(1);
   const pageSize = 10;
 
-  const [rows, setRows] = React.useState<Book[]>([]);
+  const [rows, setRows] = React.useState<BookSubject[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<Book | null>(null);
+  const [editing, setEditing] = React.useState<BookSubject | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listBooks({ page, pageSize, search, status });
+      const res = await listBookSubjects({ page, pageSize, search, status });
       setRows(res.rows);
       setTotal(res.total);
     } finally {
@@ -55,13 +45,10 @@ export default function BooksPage() {
     <>
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
-          <div className="mb-4 flex flex-wrap items-end justify-end gap-3">
-            <SectionTabs tabs={bookTabs} />
-          </div>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_220px_auto] lg:items-end">
             <Input
-              label="Search"
-              placeholder="Search title, subject, course..."
+              label="Search subjects"
+              placeholder="Search subject title..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -90,33 +77,28 @@ export default function BooksPage() {
                   setDrawerOpen(true);
                 }}
               >
-                Upload Book
+                Add Subject
               </Button>
             </div>
           </div>
 
-          <BooksTable
+          <SubjectsTable
             rows={rows}
             isLoading={loading}
-            onRowClick={(b) => nav(paths.admin.books.detail(b.id))}
-            onEdit={(b) => {
-              setEditing(b);
+            onRowClick={(s) => nav(paths.admin.books.detail(s.id))}
+            onEdit={(s) => {
+              setEditing(s);
               setDrawerOpen(true);
             }}
           />
 
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-          />
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </CardContent>
       </Card>
 
-      <BookFormDrawer
+      <SubjectFormDrawer
         open={drawerOpen}
-        book={editing}
+        subject={editing}
         onClose={() => setDrawerOpen(false)}
         onSaved={async () => {
           setDrawerOpen(false);

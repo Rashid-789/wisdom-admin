@@ -7,9 +7,7 @@ import DashboardPage from "../../pages/Dashboard/DashboardPage";
 import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
 import LoginPage from "../../pages/auth/LoginPage";
 import BooksLayoutPage from "../../pages/books/BooksLayoutPage";
-import BookDetailsPage from "../../pages/books/details/BookDetailsPage";
-import BooksPage from "../../pages/books/list/BooksPage";
-import BookOrdersPage from "../../pages/books/orders/BookOrdersPage";
+import BooksPage from "../../pages/books/pages/BooksPage";
 import ContentLayoutPage from "../../pages/content/layout/ContentLayoutPage";
 import BasicCoursesPage from "../../pages/content/courses/BasicCoursesPage";
 import SkillCoursesPage from "../../pages/content/courses/SkillCoursesPage";
@@ -25,6 +23,7 @@ import SettingsNotificationsPage from "../../pages/settings/notifications/Settin
 import UsersLayoutPage from "../../pages/users/UsersLayoutPage";
 import UsersListPage from "../../pages/users/UsersListPage";
 import AdminLayout from "../layout/AdminLayout/AdminLayout";
+import BookSubjectDetailsPage from "../../pages/books/pages/BookSubjectDetailsPage";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -66,12 +65,10 @@ const AppRoutes: React.FC = () => {
             <Route path="calendar" element={<LiveClassesCalendarPage />} />
             <Route path=":id" element={<LiveClassDetailsPage />} />
           </Route>
-
-          <Route path="books" element={<BooksLayoutPage />}>
-            <Route index element={<BooksPage />} />
-            <Route path="orders" element={<BookOrdersPage />} />
-            <Route path=":id" element={<BookDetailsPage />} />
-          </Route>
+<Route path="/admin/books" element={<BooksLayoutPage />}>
+  <Route index element={<BooksPage />} />
+  <Route path=":id" element={<BookSubjectDetailsPage />} />
+</Route>
 
           <Route path="settings" element={<SettingsLayoutPage />}>
             <Route index element={<SettingsIndexRedirect />} />

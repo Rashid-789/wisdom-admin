@@ -35,9 +35,7 @@
     },
 
     books: {
-      root: "/admin/books",
       list: "/admin/books",
-      orders: "/admin/books/orders",
       detail: (id: string) => `/admin/books/${id}`,
     },
 
