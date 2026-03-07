@@ -38,6 +38,7 @@ const UsersTable: React.FC<{ fixedRole?: UserRole }> = ({ fixedRole }) => {
     rows,
     loading,
     error,
+    indexUrl,
     pageSize,
     setPageSize,
     pageIndex,
@@ -146,7 +147,22 @@ const UsersTable: React.FC<{ fixedRole?: UserRole }> = ({ fixedRole }) => {
           </div>
 
           {error ? (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+              <p>{error}</p>
+              {error === "This filter needs a Firestore index." && indexUrl ? (
+                <div className="mt-2">
+                  <a
+                    href={indexUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Create Index
+                  </a>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           <div className="-mx-4 sm:mx-0">

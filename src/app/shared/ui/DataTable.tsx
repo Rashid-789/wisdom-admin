@@ -48,10 +48,9 @@ function DataTable<T>({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
-      {/* ✅ Scroll container (mobile/tablet). Desktop stays identical. */}
-      <div className="w-full overflow-x-auto overscroll-x-contain">
-        <table className="w-full min-w-max border-collapse">
+    <div className="rounded-2xl border border-slate-100 bg-white">
+      <div className="w-full overflow-x-auto overflow-y-visible overscroll-x-contain">
+        <table className="w-full border-collapse table-auto">
           <thead className="bg-slate-50">
             <tr>
               {columns.map((c) => (
@@ -84,7 +83,7 @@ function DataTable<T>({
                       <td
                         key={c.key}
                         className={cn(
-                          "whitespace-nowrap px-4 py-3 text-sm text-slate-700",
+                          "px-4 py-3 align-middle text-sm text-slate-700",
                           c.className
                         )}
                       >

@@ -136,8 +136,10 @@ function handleFirestoreError(error: unknown): never {
     const indexLink = extractIndexLink(asFirebase.message);
     if (indexLink) {
       console.error("[content.api] Firestore composite index required:", indexLink);
+      throw new Error(`Missing Firestore index for this filter combo. Create/deploy indexes. ${indexLink}`);
     } else {
       console.error("[content.api] Firestore query likely needs an index:", asFirebase.message ?? error);
+      throw new Error("Missing Firestore index for this filter combo. Create/deploy indexes.");
     }
   }
   if (error instanceof Error) throw error;

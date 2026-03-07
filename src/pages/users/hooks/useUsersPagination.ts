@@ -23,6 +23,22 @@ type Params = {
 
 type CursorMode = "startAt" | "startAfter" | "none";
 
+function isMissingIndexError(error: unknown): boolean {
+  const code = (error as { code?: string })?.code;
+  const message = (error as { message?: string })?.message?.toLowerCase() ?? "";
+  return code === "failed-precondition" || message.includes("requires an index");
+}
+
+type MissingIndexError = Error & { indexUrl?: string };
+
+function extractIndexUrl(error: unknown): string | undefined {
+  const message = (error as { message?: string })?.message;
+  if (!message) return undefined;
+  const match = message.match(/https:\/\/console\.firebase\.google\.com\S+/);
+  if (!match) return undefined;
+  return match[0].replace(/[)"']+$/, "");
+}
+
 export function useUsersPagination({ status = "all", search = "" }: Params) {
   const [pageSize, setPageSize] = React.useState(10);
   const [pageIndex, setPageIndex] = React.useState(0);
@@ -32,6 +48,7 @@ export function useUsersPagination({ status = "all", search = "" }: Params) {
   const [rows, setRows] = React.useState<UserRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [indexUrl, setIndexUrl] = React.useState<string | null>(null);
   const [hasNext, setHasNext] = React.useState(false);
 
   const runIdRef = React.useRef(0);
@@ -41,6 +58,7 @@ export function useUsersPagination({ status = "all", search = "" }: Params) {
       const runId = ++runIdRef.current;
       setLoading(true);
       setError(null);
+      setIndexUrl(null);
 
       try {
         const constraints: QueryConstraint[] = [];
@@ -60,7 +78,15 @@ export function useUsersPagination({ status = "all", search = "" }: Params) {
         constraints.push(limit(pageSize + 1));
 
         const q = query(collection(db, "user"), ...constraints);
-        const snap = await getDocs(q);
+        const snap = await getDocs(q).catch((err) => {
+          if (isMissingIndexError(err)) {
+            const missingIndexError = Object.assign(new Error("MISSING_INDEX"), {
+              indexUrl: extractIndexUrl(err),
+            }) as MissingIndexError;
+            throw missingIndexError;
+          }
+          throw err;
+        });
         if (runId !== runIdRef.current) return;
 
         const docs = snap.docs;
@@ -97,6 +123,11 @@ export function useUsersPagination({ status = "all", search = "" }: Params) {
         setPageIndex(targetIndex);
       } catch (e) {
         if (runId !== runIdRef.current) return;
+        if (e instanceof Error && e.message === "MISSING_INDEX") {
+          setError("This filter needs a Firestore index.");
+          setIndexUrl((e as MissingIndexError).indexUrl ?? null);
+          return;
+        }
         setError(e instanceof Error ? e.message : "Failed to load users");
       } finally {
         if (runId === runIdRef.current) setLoading(false);
@@ -140,6 +171,7 @@ export function useUsersPagination({ status = "all", search = "" }: Params) {
     rows,
     loading,
     error,
+    indexUrl,
     pageSize,
     setPageSize,
     pageIndex,
